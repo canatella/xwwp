@@ -39,8 +39,8 @@
 
 
 ;;; Code:
-(require 'xwidget)
 (require 'ivy)
+(require 'eieio)
 
 (defgroup xwidget-plus nil
   "Augment the xwidget webkit browser."
@@ -64,141 +64,6 @@
     (switch-to-buffer-other-window (xwidget-buffer (xwidget-webkit-current-session))))
 (advice-add #'xwidget-webkit-browse-url :after #'xwidget-plus-webkit-browse-url-advise)
 
-(defun xwidget-plus-make-class (class style)
-  "Generate a css CLASS definition from the STYLE alist."
-  (format ".%s { %s }\\n" class (mapconcat (lambda (v) (format "%s: %s;" (car v) (cdr v))) style " ")))
-
-(defun xwidget-plus-follow-link-style-definition ()
-  "Return the css definitions for the follow link feature."
-  (concat (xwidget-plus-make-class "xwidget-plus-follow-link-candidate" xwidget-plus-follow-link-candidate-style)
-          (xwidget-plus-make-class "xwidget-plus-follow-link-selected" xwidget-plus-follow-link-selected-style)))
-
-(defun xwidget-plus-follow-link-format-link (str)
-  "Format link title STR."
-  (setq str (replace-regexp-in-string "^[[:space:][:cntrl:]]+" "" str))
-  (setq str (replace-regexp-in-string "[[:space:][:cntrl:]]+$" "" str))
-  (setq str (replace-regexp-in-string "[[:cntrl:]]+" "/" str))
-  (replace-regexp-in-string "[[:space:]]+" " " str))
-
-(defmacro --js (js _ &rest replacements)
-  "Apply `format' on JS with REPLACEMENTS  providing MMM mode delimiters.
-
-This file has basic support for javascript using MMM mode and
-local variables (see at the end of the file)."
-  (declare (indent 3))
-  `(format ,js ,@replacements))
-
-(defun xwidget-plus-js-string-escape (string)
-  "Escape STRING for injection."
-  (replace-regexp-in-string "\n" "\\\\n" (replace-regexp-in-string "'" "\\\\'" string)))
-
-(defun xwidget-plus-inject-head-element (xwidget tag id type content)
-  "Insert TAG element under XWIDGET head with ID TYPE and CONTENT."
-  (let* ((id (xwidget-plus-js-string-escape id))
-         (tag (xwidget-plus-js-string-escape tag))
-         (type (xwidget-plus-js-string-escape type))
-         (content (xwidget-plus-js-string-escape content))
-         (script (--js "
-__xwidget_id = '%s';
-if (!document.getElementById(__xwidget_id)) {
-    var e = document.createElement('%s');
-    e.type = '%s';
-    e.id = __xwidget_id;
-    e.innerHTML = '%s';
-    document.getElementsByTagName('head')[0].appendChild(e);
-};
-" js-- id tag type content)))
-    (xwidget-webkit-execute-script xwidget script)))
-
-(defun xwidget-plus-inject-script (xwidget id script)
-  "Inject javascript SCRIPT in XWIDGET session using a script element with ID."
-  (xwidget-plus-inject-head-element xwidget "script" id "text/javascript" script))
-
-(defun xwidget-plus-inject-style (xwidget id style)
-  "Inject css STYLE in XWIDGET session using a style element with ID."
-  (xwidget-plus-inject-head-element xwidget "style" id "text/css" style))
-
-(defconst xwidget-plus-follow-link-script (--js "
-function __xwidget_plus_follow_link_cleanup() {
-    document.querySelectorAll('a').forEach(a => {
-        a.classList.remove('xwidget-plus-follow-link-candidate', 'xwidget-plus-follow-link-selected');
-    });
-}
-function __xwidget_plus_follow_link_highlight(json, selected) {
-    var ids = JSON.parse(json);
-    document.querySelectorAll('a').forEach((a, id) => {
-        a.classList.remove('xwidget-plus-follow-link-candidate', 'xwidget-plus-follow-link-selected');
-        if (selected == id) {
-            a.classList.add('xwidget-plus-follow-link-selected');
-            a.scrollIntoView({behavior: 'smooth', block: 'center'});
-        } else if (ids[id]) {
-            a.classList.add('xwidget-plus-follow-link-candidate');
-        }
-    });
-}
-function __xwidget_plus_follow_link_action(id) {
-    __xwidget_plus_follow_link_cleanup();
-    document.querySelectorAll('a')[id].click();
-}
-
-function __xwidget_plus_follow_link_links() {
-    var r = {};
-    document.querySelectorAll('a').forEach((a, i) => {
-        if (a.offsetWidth || a.offsetHeight || a.getClientRects().length)
-            r[i] = a.innerText;
-    });
-    return r;
-}
-" js--))
-
-(defun xwidget-plus-follow-link-highlight (xwidget links)
-  "Highligh LINKS in XWIDGET buffer when updating ivy candidates."
-  (with-current-buffer (ivy-state-buffer ivy-last)
-    (let* ((cands (ivy--filter ivy-text ivy--all-candidates))
-           (selected (ivy-state-current ivy-last))
-           (cands-id (seq-filter (lambda (v) (seq-contains-p cands (cdr v))) links))
-           (selected-id (car (rassoc selected links)))
-           (script (--js "__xwidget_plus_follow_link_highlight('%s', '%s');" js-- (json-serialize cands-id) selected-id)))
-      (xwidget-webkit-execute-script xwidget script))))
-
-(defun xwidget-plus-follow-link-exit (xwidget)
-  "Exit follow link mode in XWIDGET."
-  (let ((script "__xwidget_plus_follow_link_cleanup();"))
-    (xwidget-webkit-execute-script xwidget script)))
-
-(defun xwidget-plus-follow-link-action (xwidget links selected)
-  "Activate link matching SELECTED in XWIDGET LINKS."
-  (let* ((selected-id (car (rassoc selected links)))
-         (script (--js "__xwidget_plus_follow_link_action('%s');" js-- selected-id)))
-    (xwidget-webkit-execute-script xwidget script)))
-
-(defun xwidget-plus-follow-link-prepare-links (links)
-  "Prepare the alist of LINKS."
-  (setq links (seq-sort-by (lambda (v) (string-to-number (car v))) #'< links))
-  (setq links (seq-map (lambda (v) (cons (intern (car v)) (xwidget-plus-follow-link-format-link (cdr v))))
-                       links))
-  (seq-filter #'identity links))
-
-(defun xwidget-plus-follow-link-callback (links)
-  "Ask for a link belonging to the alist LINKS."
-  (let* ((xwidget (xwidget-webkit-current-session))
-         (links (xwidget-plus-follow-link-prepare-links links))
-         (choice (seq-map #'cdr links)))
-    (unwind-protect
-        (ivy-read "Link: " choice
-                  :action (apply-partially #'xwidget-plus-follow-link-action xwidget links)
-                  :update-fn (apply-partially #'xwidget-plus-follow-link-highlight xwidget links))
-      (xwidget-plus-follow-link-exit xwidget))))
-
-;;;###autoload
-(defun xwidget-plus-follow-link (&optional xwidget)
-  "Ask for a link in the XWIDGET session or the current one and follow it."
-  (interactive)
-  (let ((xwidget (or xwidget (xwidget-webkit-current-session)))
-        (script (--js "__xwidget_plus_follow_link_links();" js--)))
-    (xwidget-plus-inject-style xwidget "__xwidget_plus_follow_link_style" (xwidget-plus-follow-link-style-definition))
-    (xwidget-plus-inject-script xwidget "__xwidget_plus_follow_link_script" xwidget-plus-follow-link-script)
-    (xwidget-webkit-execute-script xwidget script #'xwidget-plus-follow-link-callback)))
 
 (provide 'xwidget-link)
 
