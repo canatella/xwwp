@@ -58,6 +58,56 @@
   :type '(list (cons string string))
   :group 'xwidget-plus)
 
+(defcustom xwidget-plus-completion-system 'ido
+  "The completion system to be used by xwidget-plus."
+  :group 'xwidget-plus
+  :type '(radio
+           (const :tag "Ido" ido)
+           (const :tag "Helm" helm)
+           (const :tag "Ivy" ivy)
+           (const :tag "Default" default)
+           (function :tag "Custom Function")))
+
+;; Handle an assortment of completion backends.
+(defun xwidget-plus-completing-read (prompt choices &key initial-input action)
+  "Present a completion PROMPT with CHOICES."
+  (let ((prompt prompt)
+         res)
+    (setq res
+      (cond
+        ((eq xwidget-plus-completion-system 'ido)
+          (ido-completing-read prompt choices nil nil initial-input))
+        ((eq xwidget-plus-completion-system 'default)
+          (completing-read prompt choices nil nil initial-input))
+        ((eq xwidget-plus-completion-system 'helm)
+          (if (and (fboundp 'helm)
+                (fboundp 'helm-make-source))
+            (helm :sources
+              (helm-make-source "XWidget-Plus" 'helm-source-sync
+                :candidates choices
+                :action (if action
+                          (prog1 action
+                            (setq action nil))
+                          #'identity))
+              :prompt prompt
+              :input initial-input
+              :buffer "*xwidget-plus*")
+            (user-error "Please install helm from https://github.com/emacs-helm/helm")))
+        ((eq xwidget-plus-completion-system 'ivy)
+          (if (fboundp 'ivy-read)
+            (ivy-read prompt choices
+              :initial-input initial-input
+              :action (prog1 action
+                        (setq action nil))
+              :update-fn (apply-partially #'xwidget-plus-follow-link-highlight xwidget links)
+              :caller 'xwidget-plus-completing-read)
+            (user-error "Please install ivy from https://github.com/abo-abo/swiper")))
+        (t (funcall xwidget-plus-completion-system prompt choices))))
+    (if action
+      (funcall action res)
+      res)))
+
+
 ;; Bring the window to front when summoning browse
 (defun xwidget-plus-webkit-browse-url-advise (&rest _)
     "Advice to add switch to window when calling `xwidget-webkit-browse-url'."
@@ -185,9 +235,8 @@ function __xwidget_plus_follow_link_links() {
          (links (xwidget-plus-follow-link-prepare-links links))
          (choice (seq-map #'cdr links)))
     (unwind-protect
-        (ivy-read "Link: " choice
-                  :action (apply-partially #'xwidget-plus-follow-link-action xwidget links)
-                  :update-fn (apply-partially #'xwidget-plus-follow-link-highlight xwidget links))
+      (xwidget-plus-completing-read "Link: " choice nil nil
+        (apply-partially #'xwidget-plus-follow-link-action xwidget links))
       (xwidget-plus-follow-link-exit xwidget))))
 
 ;;;###autoload
