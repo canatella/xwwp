@@ -39,8 +39,9 @@ returns an instance of an eieio class extending
           (const :tag "Default" default)
           (function :tag "Custom function")))
 
-(require 'xwidget)
 (require 'json)
+(require 'subr-x)
+(require 'xwidget)
 
 (defun xwidget-plus-make-class (class style)
   "Generate a css CLASS definition from the STYLE alist."
