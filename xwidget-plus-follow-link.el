@@ -149,9 +149,10 @@ browser."
   (cl-defmethod xwidget-plus-follow-link-read ((backend xwidget-plus-completion-backend-ido) prompt collection action update-fn)
     (let ((choices (seq-map #'car collection)))
       (advice-add #'ido-set-matches :after update-fn)
-      (let ((link (cdr (assoc (ido-completing-read prompt choices nil t) collection))))
-        (oset backend collection nil)
-        (advice-remove #'ido-set-matches #'update-fn)
+      (let ((link (unwind-protect
+                      (cdr (assoc (ido-completing-read prompt choices nil t) collection))
+                    (oset backend collection nil)
+                    (advice-remove #'ido-set-matches #'update-fn))))
         (funcall action link)))))
 
 
