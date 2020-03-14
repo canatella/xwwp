@@ -27,6 +27,18 @@
 
 (setq completing-read-function #'completing-read-default)
 
+;; Some usefull javascript
+(xwidget-plus-js-def test element-classes (selector)
+  "Fetch the list of css class for element matching SELECTOR.""
+map = Array.prototype.map;
+r = {};
+document.querySelectorAll(selector).forEach(l => {
+    r[l.id] = map.call(l.classList, t => {
+        return t.toString();
+     });
+});
+return r;
+")
 
 ;; A mocked backend class that doesn't interactively read anything.
 (defclass xwidget-plus-completion-backend-test (xwidget-plus-completion-backend)
@@ -55,16 +67,7 @@
   ;; Trigger the javascript update.
   (funcall update-fn)
   ;; Fetch css classes.
-  (xwidget-webkit-execute-script (xwidget-webkit-current-session) (--js "
-map = Array.prototype.map;
-r = {};
-document.querySelectorAll('a').forEach(l => {
-    r[l.id] = map.call(l.classList, t => {
-        return t.toString();
-     });
-});
-r
-" js--) #'xwidget-plus-update-fn-callback)
+  (xwidget-plus-test-element-classes (xwidget-webkit-current-session) "a" #'xwidget-plus-update-fn-callback)
   (xwidget-plus-event-dispatch))
 
 (cl-defmethod backend-test-link-classes ((backend xwidget-plus-completion-backend-test) link-id)
@@ -188,7 +191,14 @@ r
 
 ;; Local Variables:
 ;; eval: (mmm-mode)
-;; eval: (mmm-add-classes '((elisp-js :submode js-mode :face mmm-code-submode-face :delimiter-mode nil :front "--js \"" :back "\" js--")))
+;; eval: (mmm-add-group 'elisp-js '((elisp-rawjs :submode js-mode
+;;                                               :face mmm-code-submode-face
+;;                                               :delimiter-mode nil
+;;                                               :front "--js \"" :back "\" js--")
+;;                                  (elisp-defjs :submode js-mode
+;;                                               :face mmm-code-submode-face
+;;                                               :delimiter-mode nil
+;;                                               :front "xwidget-plus-js-def .*\n.*\"\"\n" :back "\")\n")))
 ;; mmm-classes: elisp-js
 ;; End:
 

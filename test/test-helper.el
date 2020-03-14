@@ -46,8 +46,9 @@
   (save-excursion
     (with-current-buffer (xwidget-buffer (xwidget-webkit-last-session))
       (let ((event (read-event nil nil seconds)))
-        (message "event:%s " event)
-        (xwidget-event-handler)
+        (when event
+          (message "event:%s " event)
+          (xwidget-event-handler))
         event))))
 
 (defun xwidget-plus-event-loop ()
@@ -63,6 +64,8 @@
        ;; this will trigger a loading event
        (xwidget-plus-event-dispatch)
        (let ((xwidget (xwidget-webkit-last-session)))
+         (xwidget-plus-js-inject xwidget 'test)
+         (xwidget-plus-event-loop)
          (with-current-buffer (xwidget-buffer xwidget)
            ,@body)))))
 
