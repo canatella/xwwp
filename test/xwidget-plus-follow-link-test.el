@@ -23,12 +23,8 @@
 
 (require 'test-helper)
 (require 'with-simulated-input)
-(require 'ivy)
-(require 'helm)
 (require 'xwidget-plus-follow-link)
 
-;; Disable helm and ivy, otherwise they hijack completing-read and break the
-;; default completion backend test.
 (setq completing-read-function #'completing-read-default)
 
 
@@ -41,7 +37,7 @@
 
 (defun xwidget-plus-update-fn-callback (result)
   "Called after updating candidates with the css classes in RESULT."
-  (let ((backend xwidget-plus-completion-backend-instance))
+  (let ((backend xwidget-plus-follow-link-completion-backend-instance))
     ;; Store the results.
     (oset backend classes result)
     ;; Trigger the action function with the mocked selected link
@@ -79,15 +75,15 @@ r
   "Run BODY with the specified BACKEND."
   (declare (indent 1))
   `(let* ((backend (,(intern (concat "xwidget-plus-completion-backend-" (symbol-name backend)))))
-          (xwidget-plus-completion-backend-instance backend))
+          (xwidget-plus-follow-link-completion-backend-instance backend))
      ,@body))
+
 
 (defmacro with-test-backend-browse (candidates selected url &rest body)
   "Run BODY with the specified BACKEND mocking CANDIDATES and SELECTED while browsing URL."
   (declare (indent 3))
-  `(let* ((backend (xwidget-plus-completion-backend-test :candidates-mock ,candidates
-                                                         :selected-mock ,selected))
-          (xwidget-plus-completion-backend-instance backend))
+  `(let* ((xwidget-plus-completion-system (lambda () (xwidget-plus-completion-backend-test :candidates-mock ,candidates
+                                                                                           :selected-mock ,selected))))
      (with-browse ,url
        ,@body)))
 
@@ -109,16 +105,18 @@ r
     (xwidget-plus-follow-link)
       (xwidget-plus-event-dispatch)
       (should (string= "test-1.html" (file-name-nondirectory (xwidget-webkit-current-url))))
-      (should (equal (backend-test-link-classes backend "test-1") '["xwidget-plus-follow-link-selected"]))
-      (should (equal (backend-test-link-classes backend "test-2") '["xwidget-plus-follow-link-candidate"])))
+      (let ((backend xwidget-plus-follow-link-completion-backend-instance))
+        (should (equal (backend-test-link-classes backend "test-1") '["xwidget-plus-follow-link-selected"]))
+        (should (equal (backend-test-link-classes backend "test-2") '["xwidget-plus-follow-link-candidate"]))))
   (with-test-backend-browse '(1 0 1) 1 "links.html"
     (split-window-vertically)
     (save-excursion (switch-to-buffer-other-window "*Messages*"))
     (xwidget-plus-follow-link)
     (xwidget-plus-event-dispatch)
     (should (string= "test-2.html" (file-name-nondirectory (xwidget-webkit-current-url))))
-    (should (equal (backend-test-link-classes backend "test-1") '["xwidget-plus-follow-link-candidate"]))
-    (should (equal (backend-test-link-classes backend "test-2") '["xwidget-plus-follow-link-selected"]))))
+    (let ((backend xwidget-plus-follow-link-completion-backend-instance))
+      (should (equal (backend-test-link-classes backend "test-1") '["xwidget-plus-follow-link-candidate"]))
+      (should (equal (backend-test-link-classes backend "test-2") '["xwidget-plus-follow-link-selected"])))))
 
 (defmacro with-read-fixtures (backend &rest body)
   (declare (indent 1))
@@ -137,22 +135,56 @@ r
       (should (= 1 link)))))
 
 (ert-deftest test-xwidget-plus-follow-link-read-ido ()
+  (require 'ido)
   (with-read-fixtures ido
     (with-simulated-input "2 RET"
       (xwidget-plus-follow-link-read backend "Test: " links action update)
       (should (= 1 link)))))
 
 (ert-deftest test-xwidget-plus-follow-link-read-ivy ()
+  (require 'ivy)
   (with-read-fixtures ivy
     (with-simulated-input "2 RET"
       (xwidget-plus-follow-link-read backend "Test: " links action update)
       (should (= 1 link)))))
 
 (ert-deftest test-xwidget-plus-follow-link-read-helm ()
+  (require 'helm)
   (with-read-fixtures helm
     (with-simulated-input '("2" (wsi-simulate-idle-time 0.1) "RET")
       (xwidget-plus-follow-link-read backend "Test: " links action update)
       (should (= 1 link)))))
+
+(defmacro with-feature (feature &rest body)
+  (declare (indent 1))
+  `(progn (when (featurep 'ido) (unload-feature 'ido t))
+          (when (featurep 'ivy) (unload-feature 'ivy t))
+          (when (featurep 'helm) (unload-feature 'helm t))
+          (when ,feature (require ,feature))
+          ,@body))
+
+(ert-deftest test-xwidget-plus-follow-link-make-backend-use-feature ()
+  (with-feature nil
+    (should (eq #'xwidget-plus-completion-backend-default (xwidget-plus-follow-link-make-backend))))
+  (with-feature 'ido
+    (should (eq #'xwidget-plus-completion-backend-ido (xwidget-plus-follow-link-make-backend))))
+  (with-feature 'ivy
+    (should (eq #'xwidget-plus-completion-backend-ivy (xwidget-plus-follow-link-make-backend))))
+  (with-feature 'helm
+    (should (eq #'xwidget-plus-completion-backend-helm (xwidget-plus-follow-link-make-backend)))))
+
+(ert-deftest test-xwidget-plus-follow-link-make-backend-use-custom ()
+  (let ((xwidget-plus-completion-system 'default))
+    (with-feature nil
+      (should (eq #'xwidget-plus-completion-backend-default (xwidget-plus-follow-link-make-backend)))))
+  (let ((xwidget-plus-completion-system 'ido))
+    (should (eq #'xwidget-plus-completion-backend-ido (xwidget-plus-follow-link-make-backend))))
+  (let ((xwidget-plus-completion-system 'ivy))
+    (should (eq #'xwidget-plus-completion-backend-ivy (xwidget-plus-follow-link-make-backend))))
+  (let ((xwidget-plus-completion-system 'helm))
+    (should (eq #'xwidget-plus-completion-backend-helm (xwidget-plus-follow-link-make-backend))))
+  (let ((xwidget-plus-completion-system #'identity))
+    (should (eq #'identity (xwidget-plus-follow-link-make-backend)))))
 
 ;; Local Variables:
 ;; eval: (mmm-mode)

@@ -43,10 +43,23 @@
 (require 'xwidget-plus-follow-link)
 
 ;; Bring the window to front when summoning browse
-(defun xwidget-plus-webkit-browse-url-advise (&rest _)
-    "Advice to add switch to window when calling `xwidget-webkit-browse-url'."
-    (switch-to-buffer-other-window (xwidget-buffer (xwidget-webkit-current-session))))
-(advice-add #'xwidget-webkit-browse-url :after #'xwidget-plus-webkit-browse-url-advise)
+;;;###autoload
+(defun xwidget-plus-browse-url (url &optional new-session)
+  "Ask xwidget-webkit to browse URL.
+NEW-SESSION specifies whether to create a new xwidget-webkit session.
+Interactively, URL defaults to the string looking like a url around point."
+  (interactive (progn
+                 (require 'browse-url)
+                 (browse-url-interactive-arg "xwidget-webkit URL: "
+                                             ;;(xwidget-webkit-current-url)
+                                             )))
+  (or (featurep 'xwidget-internal)
+      (user-error "Your Emacs was not compiled with xwidgets support"))
+  (when (stringp url)
+    (if new-session
+        (xwidget-webkit-new-session url)
+      (progn (xwidget-webkit-goto-url url)
+             (switch-to-buffer-other-window (xwidget-buffer (xwidget-webkit-current-session)))))))
 
 ;; Local Variables:
 ;; eval: (mmm-mode)

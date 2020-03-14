@@ -25,6 +25,19 @@
   "Augment the xwidget webkit browser."
   :group 'convenience)
 
+(defcustom xwidget-plus-completion-system 'default
+  "The completion system to be used by xwidget plus.
+
+Custom function should be a function that takes no arguments and
+returns an instance of an eieio class extending
+`xwidget-plus-completion-backend'."
+  :group 'xwidget-plus
+  :type '(radio
+          (const :tag "Ido" ido)
+          (const :tag "Helm" helm)
+          (const :tag "Ivy" ivy)
+          (const :tag "Default" default)
+          (function :tag "Custom function")))
 
 (require 'xwidget)
 (require 'json)
