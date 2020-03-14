@@ -27,6 +27,7 @@
 
 
 (require 'xwidget)
+(require 'json)
 
 (defun xwidget-plus-make-class (class style)
   "Generate a css CLASS definition from the STYLE alist."
@@ -37,7 +38,7 @@
 
 This file has basic support for javascript using MMM mode and
 local variables (see at the end of the file)."
-  (declare (indent 3))
+  (declare (indent 2))
   `(format ,js ,@replacements))
 
 (defun xwidget-plus-js-string-escape (string)
@@ -71,9 +72,70 @@ null;
   "Inject css STYLE in XWIDGET session using a style element with ID."
   (xwidget-plus-inject-head-element xwidget "style" id "text/css" style))
 
+(defun xwidget-plus-lisp-to-js (identifier)
+  "Convert IDENTIFIER from Lisp style to javascript style."
+  (replace-regexp-in-string "-" "_" (if (symbolp identifier) (symbol-name identifier) identifier)))
+
+(defvar xwidget-plus-js-scripts '() "An  alist of list of javascript function.")
+
+(defun xwidget-plus-js-register-function (ns-name name js-script)
+  "Register javascript function NAME in namespace NS-NAME with body JS-SCRIPT."
+  (let* ((namespace (assoc ns-name xwidget-plus-js-scripts))
+         (fun (when namespace (assoc name (cdr namespace)))))
+    (cond (fun
+           (delete fun namespace)
+           (xwidget-plus-js-register-function ns-name name js-script))
+          ((not namespace)
+           (push (cons ns-name '()) xwidget-plus-js-scripts)
+           (xwidget-plus-js-register-function ns-name name js-script))
+          (t
+           (push (cons name js-script) (cdr namespace))))
+    (cons ns-name name)))
+
+(defun xwidget-plus-js-funcall (xwidget namespace name &rest arguments)
+  "Invoke javascript FUNCTION in XWIDGET instance passing ARGUMENTS witch CALLBACK in NAMESPACE."
+  ;;; Try to be smart
+  (let* ((json-args (seq-map #'json-encode arguments))
+         (arg-string (string-join json-args ", "))
+         (namespace (xwidget-plus-lisp-to-js namespace))
+         (name (xwidget-plus-lisp-to-js name))
+         (callback (let ((cb (car (last arguments)))) (when (functionp cb) cb)))
+         (script (format "__xwidget_plus_%s_%s(%s)" namespace name arg-string)))
+    (xwidget-webkit-execute-script xwidget script callback)))
+
+(defmacro xwidget-plus-js-def (namespace name arguments docstring js-body)
+  "Create a function NAME with ARGUMENTS, DOCSTRING and JS-BODY.
+
+This will define a javascript function in the namespace NAMESPACE
+and a Lisp function to call it. "
+  (declare (indent 3) (doc-string 4))
+  (let* ((js-arguments (seq-map #'xwidget-plus-lisp-to-js arguments))
+         (js-name (xwidget-plus-lisp-to-js name))
+         (js-namespace (xwidget-plus-lisp-to-js namespace))
+         (lisp-arguments (append '(xwidget) arguments '(&optional callback)))
+         (script (--js "function __xwidget_plus_%s_%s(%s) {%s};" js--
+                   js-namespace js-name (string-join js-arguments ", ") (eval js-body)))
+         (lisp-def  `(defun ,(intern (format "xwidget-plus-%s-%s" namespace name)) ,lisp-arguments
+                       ,docstring
+                       (xwidget-plus-js-funcall xwidget (quote ,namespace) (quote ,name) ,@arguments callback)))
+         (lisp-store `(xwidget-plus-js-register-function (quote ,namespace) (quote ,name) ,script)))
+    `(progn ,lisp-def ,lisp-store)))
+
+(defun xwidget-plus-js-inject (xwidget ns-name)
+  (let* ((namespace (assoc ns-name xwidget-plus-js-scripts))
+         (script (mapconcat #'cdr (cdr namespace) "\n")))
+    (xwidget-plus-inject-script xwidget (format "--xwidget-plus-%s" (symbol-name ns-name)) script)))
+
 ;; Local Variables:
 ;; eval: (mmm-mode)
-;; eval: (mmm-add-classes '((elisp-js :submode js-mode :face mmm-code-submode-face :delimiter-mode nil :front "--js \"" :back "\" js--")))
+;; eval: (mmm-add-group 'elisp-js '((elisp-rawjs :submode js-mode
+;;                                               :face mmm-code-submode-face
+;;                                               :delimiter-mode nil
+;;                                               :front "--js \"" :back "\" js--")
+;;                                  (elisp-defjs :submode js-mode
+;;                                               :face mmm-code-submode-face
+;;                                               :delimiter-mode nil
+;;                                               :front "xwidget-plus-defjs .*\n.*\"\"\n" :back "\")\n")))
 ;; mmm-classes: elisp-js
 ;; End:
 

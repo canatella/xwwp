@@ -33,7 +33,7 @@
   :group 'xwidget-plus)
 
 (defcustom xwidget-plus-follow-link-selected-style '(("border" . "1px dashed red")
-                                                  ("background" . "#ff000020"))
+                                                     ("background" . "#ff000020"))
   "Style to apply to currently selected link."
   :type '(list (cons string string))
   :group 'xwidget-plus)
@@ -43,41 +43,43 @@
   (concat (xwidget-plus-make-class "xwidget-plus-follow-link-candidate" xwidget-plus-follow-link-candidate-style)
           (xwidget-plus-make-class "xwidget-plus-follow-link-selected" xwidget-plus-follow-link-selected-style)))
 
+(xwidget-plus-js-def follow-link cleanup ()
+  "Remove all custom class from links.""
+document.querySelectorAll('a').forEach(a => {
+    a.classList.remove('xwidget-plus-follow-link-candidate', 'xwidget-plus-follow-link-selected');
+});
+")
 
-(defconst xwidget-plus-follow-link-script (--js "
-function __xwidget_plus_follow_link_cleanup() {
-    document.querySelectorAll('a').forEach(a => {
-        a.classList.remove('xwidget-plus-follow-link-candidate', 'xwidget-plus-follow-link-selected');
-    });
-}
-function __xwidget_plus_follow_link_highlight(json, selected) {
-    var ids = JSON.parse(json);
-    document.querySelectorAll('a').forEach((a, id) => {
-        a.classList.remove('xwidget-plus-follow-link-candidate', 'xwidget-plus-follow-link-selected');
-        if (selected == id) {
-            a.classList.add('xwidget-plus-follow-link-selected');
-            a.scrollIntoView({behavior: 'smooth', block: 'center'});
-        } else if (ids.includes(id)) {
-            a.classList.add('xwidget-plus-follow-link-candidate');
-        }
-    });
-}
-function __xwidget_plus_follow_link_action(id) {
-    __xwidget_plus_follow_link_cleanup();
-    document.querySelectorAll('a')[id].click();
-}
+(xwidget-plus-js-def follow-link highlight (ids selected)
+  "Highlight IDS as candidate and SELECTED as selected.""
+document.querySelectorAll('a').forEach((a, id) => {
+    a.classList.remove('xwidget-plus-follow-link-candidate', 'xwidget-plus-follow-link-selected');
+    if (selected == id) {
+        a.classList.add('xwidget-plus-follow-link-selected');
+        a.scrollIntoView({behavior: 'smooth', block: 'center'});
+    } else if (ids.includes(id)) {
+        a.classList.add('xwidget-plus-follow-link-candidate');
+    }
+});
+")
 
-function __xwidget_plus_follow_link_links() {
-    var r = {};
-    document.querySelectorAll('a').forEach((a, i) => {
-        if (a.offsetWidth || a.offsetHeight || a.getClientRects().length) {
-            if (a.innerText.match(/\\\\S/))
-                r[i] = a.innerText;
-        }
-    });
-    return r;
-}
-" js--))
+(xwidget-plus-js-def follow-link action (link-id)
+  "Click on the link identified by LINK-ID""
+__xwidget_plus_follow_link_cleanup();
+document.querySelectorAll('a')[link_id].click();
+")
+
+(xwidget-plus-js-def follow-link fetch-links ()
+  "Fetch all visible, non empty links from the current page.""
+var r = {};
+document.querySelectorAll('a').forEach((a, i) => {
+    if (a.offsetWidth || a.offsetHeight || a.getClientRects().length) {
+        if (a.innerText.match(/\\\\S/))
+            r[i] = a.innerText;
+    }
+});
+return r;
+")
 
 
 ;; Completion backend class
@@ -193,26 +195,19 @@ browser."
         :prompt prompt
         :buffer "*helm-xwidget-plus*"))
 
-(defvar xwidget-plus-completion-backend-instance (xwidget-plus-completion-backend))
+(defvar xwidget-plus-completion-backend-instance (xwidget-plus-completion-backend-ivy))
 
-(defun xwidget-plus-follow-link-highlight (xwidget)
+(defun xwidget-plus-follow-link-update (xwidget)
   "Highligh LINKS in XWIDGET buffer when updating candidates."
   (let ((links (xwidget-plus-follow-link-candidates xwidget-plus-completion-backend-instance)))
     (when links
       (let* ((selected (car links))
-             (candidates (cdr links))
-             (script (--js "__xwidget_plus_follow_link_highlight('%s', %s);" js-- (json-serialize (vconcat candidates)) (or selected "null"))))
-        (xwidget-webkit-execute-script xwidget script)))))
+             (candidates (cdr links)))
+        (xwidget-plus-follow-link-highlight xwidget candidates selected)))))
 
-(defun xwidget-plus-follow-link-exit (xwidget)
-  "Exit follow link mode in XWIDGET."
-  (let ((script "__xwidget_plus_follow_link_cleanup();"))
-    (xwidget-webkit-execute-script xwidget script)))
-
-(defun xwidget-plus-follow-link-action (xwidget selected)
+(defun xwidget-plus-follow-link-trigger-action (xwidget selected)
   "Activate link matching SELECTED in XWIDGET LINKS."
-  (let ((script (--js "__xwidget_plus_follow_link_action(%s);" js-- selected)))
-    (xwidget-webkit-execute-script xwidget script)))
+  (xwidget-plus-follow-link-action xwidget selected))
 
 (defun xwidget-plus-follow-link-format-link (str)
   "Format link title STR."
@@ -237,24 +232,30 @@ browser."
         (condition-case nil
             (xwidget-plus-follow-link-read xwidget-plus-completion-backend-instance
                                            "Link: " links
-                                           (apply-partially #'xwidget-plus-follow-link-action xwidget)
-                                           (apply-partially #'xwidget-plus-follow-link-highlight xwidget))
-          (quit (xwidget-plus-follow-link-exit xwidget))))
+                                           (apply-partially #'xwidget-plus-follow-link-trigger-action xwidget)
+                                           (apply-partially #'xwidget-plus-follow-link-update xwidget))
+          (quit (xwidget-plus-follow-link-cleanupxwidget))))
     (oset xwidget-plus-completion-backend-instance collection nil)))
 
 ;;;###autoload
 (defun xwidget-plus-follow-link (&optional xwidget)
   "Ask for a link in the XWIDGET session or the current one and follow it."
   (interactive)
-  (let ((xwidget (or xwidget (xwidget-webkit-current-session)))
-        (script (--js "__xwidget_plus_follow_link_links();" js--)))
+  (let ((xwidget (or xwidget (xwidget-webkit-current-session))))
     (xwidget-plus-inject-style xwidget "__xwidget_plus_follow_link_style" (xwidget-plus-follow-link-style-definition))
-    (xwidget-plus-inject-script xwidget "__xwidget_plus_follow_link_script" xwidget-plus-follow-link-script)
-    (xwidget-webkit-execute-script xwidget script #'xwidget-plus-follow-link-callback)))
+    (xwidget-plus-js-inject xwidget 'follow-link)
+    (xwidget-plus-follow-link-fetch-links xwidget #'xwidget-plus-follow-link-callback)))
 
 ;; Local Variables:
 ;; eval: (mmm-mode)
-;; eval: (mmm-add-classes '((elisp-js :submode js-mode :face mmm-code-submode-face :delimiter-mode nil :front "--js \"" :back "\" js--")))
+;; eval: (mmm-add-group 'elisp-js '((elisp-rawjs :submode js-mode
+;;                                               :face mmm-code-submode-face
+;;                                               :delimiter-mode nil
+;;                                               :front "--js \"" :back "\" js--")
+;;                                  (elisp-defjs :submode js-mode
+;;                                               :face mmm-code-submode-face
+;;                                               :delimiter-mode nil
+;;                                               :front "xwidget-plus-js-def .*\n.*\"\"\n" :back "\")\n")))
 ;; mmm-classes: elisp-js
 ;; End:
 

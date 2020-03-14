@@ -23,7 +23,8 @@
 
 
 (when (> emacs-major-version 26)
-  (defalias 'ert--print-backtrace 'backtrace-to-string))
+  (defun ert--print-backtrace (frames)
+    (insert (backtrace-to-string frames))))
 
 
 (defconst xwidget-plus-test-path (file-name-as-directory
