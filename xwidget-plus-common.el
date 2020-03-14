@@ -21,23 +21,16 @@
 
 ;;; Code:
 
+(defgroup xwidget-plus nil
+  "Augment the xwidget webkit browser."
+  :group 'convenience)
+
+
 (require 'xwidget)
 
 (defun xwidget-plus-make-class (class style)
   "Generate a css CLASS definition from the STYLE alist."
   (format ".%s { %s }\\n" class (mapconcat (lambda (v) (format "%s: %s;" (car v) (cdr v))) style " ")))
-
-(defun xwidget-plus-follow-link-style-definition ()
-  "Return the css definitions for the follow link feature."
-  (concat (xwidget-plus-make-class "xwidget-plus-follow-link-candidate" xwidget-plus-follow-link-candidate-style)
-          (xwidget-plus-make-class "xwidget-plus-follow-link-selected" xwidget-plus-follow-link-selected-style)))
-
-(defun xwidget-plus-follow-link-format-link (str)
-  "Format link title STR."
-  (setq str (replace-regexp-in-string "^[[:space:][:cntrl:]]+" "" str))
-  (setq str (replace-regexp-in-string "[[:space:][:cntrl:]]+$" "" str))
-  (setq str (replace-regexp-in-string "[[:cntrl:]]+" "/" str))
-  (replace-regexp-in-string "[[:space:]]+" " " str))
 
 (defmacro --js (js _ &rest replacements)
   "Apply `format' on JS with REPLACEMENTS  providing MMM mode delimiters.
@@ -66,6 +59,7 @@ if (!document.getElementById(__xwidget_id)) {
     e.innerHTML = '%s';
     document.getElementsByTagName('head')[0].appendChild(e);
 };
+null;
 " js-- id tag type content)))
     (xwidget-webkit-execute-script xwidget script)))
 
@@ -77,12 +71,11 @@ if (!document.getElementById(__xwidget_id)) {
   "Inject css STYLE in XWIDGET session using a style element with ID."
   (xwidget-plus-inject-head-element xwidget "style" id "text/css" style))
 
-
-(provide 'xwidget-plus-common)
-
-;;; xwidget-plus-common.el ends here
 ;; Local Variables:
 ;; eval: (mmm-mode)
 ;; eval: (mmm-add-classes '((elisp-js :submode js-mode :face mmm-code-submode-face :delimiter-mode nil :front "--js \"" :back "\" js--")))
 ;; mmm-classes: elisp-js
 ;; End:
+
+(provide 'xwidget-plus-common)
+;;; xwidget-plus-common.el ends here

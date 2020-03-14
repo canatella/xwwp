@@ -5,7 +5,7 @@
 ;; Created: 2020-03-11
 ;; Keywords: convenience
 ;; Version: 0.1
-;; Package-Requires: ((emacs "25.3") (ivy "0.13.0"))
+;; Package-Requires: ((emacs "25.3"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -37,26 +37,10 @@
 
 ;;
 
-
 ;;; Code:
-(require 'ivy)
-(require 'eieio)
 
-(defgroup xwidget-plus nil
-  "Augment the xwidget webkit browser."
-  :group 'convenience)
-
-(defcustom xwidget-plus-follow-link-candidate-style '(("border" . "1px dashed blue")
-                                                      ("background" . "#0000ff20"))
-  "Style to apply to candidate links."
-  :type '(list (cons string string))
-  :group 'xwidget-plus)
-
-(defcustom xwidget-plus-follow-link-selected-style '(("border" . "1px dashed red")
-                                                  ("background" . "#ff000020"))
-  "Style to apply to currently selected link."
-  :type '(list (cons string string))
-  :group 'xwidget-plus)
+(require 'xwidget-plus-common)
+(require 'xwidget-plus-follow-link)
 
 ;; Bring the window to front when summoning browse
 (defun xwidget-plus-webkit-browse-url-advise (&rest _)
@@ -64,13 +48,11 @@
     (switch-to-buffer-other-window (xwidget-buffer (xwidget-webkit-current-session))))
 (advice-add #'xwidget-webkit-browse-url :after #'xwidget-plus-webkit-browse-url-advise)
 
-
-(provide 'xwidget-link)
-
-;;; xwidget-link.el ends here
-
 ;; Local Variables:
 ;; eval: (mmm-mode)
 ;; eval: (mmm-add-classes '((elisp-js :submode js-mode :face mmm-code-submode-face :delimiter-mode nil :front "--js \"" :back "\" js--")))
 ;; mmm-classes: elisp-js
 ;; End:
+
+(provide 'xwidget-plus)
+;;; xwidget-plus.el ends here
