@@ -11,5 +11,4 @@
  (depends-on "ert-async")
  (depends-on "with-simulated-input")
  (depends-on "ivy")
- (depends-on "helm")
- (depends-on "package-lint"))
+ (depends-on "helm"))
