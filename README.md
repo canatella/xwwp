@@ -3,6 +3,7 @@
 This package enhance the integrated xwidget-webkit browser with hopefully useful
 functionnalities.
 
+![CI](https://github.com/canatella/xwidget-plus/workflows/CI/badge.svg?branch=master)
 
 ## Follow link
 
