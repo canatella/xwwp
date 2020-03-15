@@ -27,6 +27,9 @@ jobs:
     - name: Install package dependencies
       run: |
         cask install
+    - name: Compile
+      run: |
+        cask build
     - name: Run tests
       run: |
         xvfb-run --auto-servernum cask exec ert-runner --win
