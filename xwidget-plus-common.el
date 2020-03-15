@@ -107,7 +107,7 @@ null;
     (cons ns-name name)))
 
 (defun xwidget-plus-js-funcall (xwidget namespace name &rest arguments)
-  "Invoke javascript FUNCTION in XWIDGET instance passing ARGUMENTS witch CALLBACK in NAMESPACE."
+  "Invoke javascript function NAME in XWIDGET instance passing ARGUMENTS witch CALLBACK in NAMESPACE."
   ;;; Try to be smart
   (let* ((callback (car (last arguments)))
          (arguments (if (functionp callback) (reverse (cdr (reverse arguments))) arguments))
@@ -122,7 +122,7 @@ null;
   "Create a function NAME with ARGUMENTS, DOCSTRING and JS-BODY.
 
 This will define a javascript function in the namespace NAMESPACE
-and a Lisp function to call it. "
+and a Lisp function to call it."
   (declare (indent 3) (doc-string 4))
   (let* ((js-arguments (seq-map #'xwidget-plus-lisp-to-js arguments))
          (js-name (xwidget-plus-lisp-to-js name))
