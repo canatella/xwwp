@@ -23,7 +23,6 @@
 
 (require 'xwidget)
 (require 'xwidget-plus-common)
-(require 'ivy)
 (require 'eieio)
 
 (defcustom xwidget-plus-follow-link-candidate-style '(("border" . "1px dashed blue")
