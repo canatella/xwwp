@@ -54,7 +54,7 @@
 (defun xwidget-plus-event-loop ()
   (save-excursion
     (with-current-buffer (xwidget-buffer (xwidget-webkit-last-session))
-      (while (xwidget-plus-event-dispatch 0.05)))))
+      (while (xwidget-plus-event-dispatch 0.3)))))
 
 (defmacro with-browse (file &rest body)
   (declare (indent 1))

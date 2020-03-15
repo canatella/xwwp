@@ -40,21 +40,33 @@ document.querySelectorAll(selector).forEach(l => {
 return r;
 ")
 
+(xwidget-plus-js-def test current-location ()
+  "Fetch the current url.""
+return '' + window.location;
+")
+
 ;; A mocked backend class that doesn't interactively read anything.
 (defclass xwidget-plus-completion-backend-test (xwidget-plus-completion-backend)
   ((candidates-mock :initarg :candidates-mock)
    (selected-mock :initarg :selected-mock)
    (action-fn)
-   (classes)))
+   (classes)
+   (location)))
 
 (defun xwidget-plus-update-fn-callback (result)
   "Called after updating candidates with the css classes in RESULT."
   (let ((backend xwidget-plus-follow-link-completion-backend-instance))
     ;; Store the results.
-    (oset backend classes result)
+    (oset backend classes (seq-map #'identity result))
     ;; Trigger the action function with the mocked selected link
     (funcall (oref backend action-fn) (oref backend selected-mock))
     (xwidget-plus-event-dispatch)))
+
+(defun xwidget-plus-location-callback (result)
+  "Called after updating candidates with the css classes in RESULT."
+  (let ((backend xwidget-plus-follow-link-completion-backend-instance))
+    ;; Store the results.
+    (oset backend location result)))
 
 (cl-defmethod xwidget-plus-follow-link-candidates ((backend xwidget-plus-completion-backend-test))
   "Return the list of BACKEND mocked candidates."
@@ -67,6 +79,7 @@ return r;
   ;; Trigger the javascript update.
   (funcall update-fn)
   ;; Fetch css classes.
+  (xwidget-plus-js-inject (xwidget-webkit-current-session) 'test)
   (xwidget-plus-test-element-classes (xwidget-webkit-current-session) "a" #'xwidget-plus-update-fn-callback)
   (xwidget-plus-event-dispatch))
 
@@ -106,18 +119,22 @@ return r;
 (ert-deftest test-xwidget-plus-follow-link-highlight ()
   (with-test-backend-browse '(0 0 1) 0 "links.html"
     (xwidget-plus-follow-link)
-      (xwidget-plus-event-dispatch)
-      (should (string= "test-1.html" (file-name-nondirectory (xwidget-webkit-current-url))))
-      (let ((backend xwidget-plus-follow-link-completion-backend-instance))
-        (should (equal (backend-test-link-classes backend "test-1") '["xwidget-plus-follow-link-selected"]))
-        (should (equal (backend-test-link-classes backend "test-2") '["xwidget-plus-follow-link-candidate"]))))
-  (with-test-backend-browse '(1 0 1) 1 "links.html"
-    (split-window-vertically)
-    (save-excursion (switch-to-buffer-other-window "*Messages*"))
-    (xwidget-plus-follow-link)
-    (xwidget-plus-event-dispatch)
-    (should (string= "test-2.html" (file-name-nondirectory (xwidget-webkit-current-url))))
+    (xwidget-plus-event-loop)
     (let ((backend xwidget-plus-follow-link-completion-backend-instance))
+      (xwidget-plus-js-inject xwidget 'test)
+      (xwidget-plus-test-current-location xwidget #'xwidget-plus-location-callback)
+      (xwidget-plus-event-dispatch)
+      (should (string= "test-1.html" (file-name-nondirectory (oref backend location))))
+      (should (equal (backend-test-link-classes backend "test-1") '["xwidget-plus-follow-link-selected"]))
+      (should (equal (backend-test-link-classes backend "test-2") '["xwidget-plus-follow-link-candidate"]))))
+  (with-test-backend-browse '(1 0 1) 1 "links.html"
+    (xwidget-plus-follow-link)
+    (xwidget-plus-event-loop)
+    (let ((backend xwidget-plus-follow-link-completion-backend-instance))
+      (xwidget-plus-js-inject xwidget 'test)
+      (xwidget-plus-test-current-location xwidget #'xwidget-plus-location-callback)
+      (xwidget-plus-event-dispatch)
+      (should (string= "test-2.html" (file-name-nondirectory (oref backend location))))
       (should (equal (backend-test-link-classes backend "test-1") '["xwidget-plus-follow-link-candidate"]))
       (should (equal (backend-test-link-classes backend "test-2") '["xwidget-plus-follow-link-selected"])))))
 
