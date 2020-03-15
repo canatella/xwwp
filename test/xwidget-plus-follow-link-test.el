@@ -138,6 +138,18 @@ return '' + window.location;
       (should (equal (backend-test-link-classes backend "test-1") '["xwidget-plus-follow-link-candidate"]))
       (should (equal (backend-test-link-classes backend "test-2") '["xwidget-plus-follow-link-selected"])))))
 
+(ert-deftest test-xwidget-plus-follow-link-highlight-no-candidates ()
+  (with-test-backend-browse '(1) 1 "links.html"
+    (xwidget-plus-follow-link)
+    (xwidget-plus-event-loop)
+    (let ((backend xwidget-plus-follow-link-completion-backend-instance))
+      (xwidget-plus-js-inject xwidget 'test)
+      (xwidget-plus-test-current-location xwidget #'xwidget-plus-location-callback)
+      (xwidget-plus-event-dispatch)
+      (should (string= "test-2.html" (file-name-nondirectory (oref backend location))))
+      (should (equal (backend-test-link-classes backend "test-1") '[]))
+      (should (equal (backend-test-link-classes backend "test-2") '["xwidget-plus-follow-link-selected"])))))
+
 (defmacro with-read-fixtures (backend &rest body)
   (declare (indent 1))
   `(let* ((links '(("test 1" . 0) ("test 2" . 1)))

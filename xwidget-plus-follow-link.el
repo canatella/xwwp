@@ -56,7 +56,7 @@ document.querySelectorAll('a').forEach((a, id) => {
     if (selected == id) {
         a.classList.add('xwidget-plus-follow-link-selected');
         a.scrollIntoView({behavior: 'smooth', block: 'center'});
-    } else if (ids.includes(id)) {
+    } else if (ids && ids.includes(id)) {
         a.classList.add('xwidget-plus-follow-link-candidate');
     }
 });
