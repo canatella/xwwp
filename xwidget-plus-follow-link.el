@@ -84,7 +84,7 @@ return r;
 ;; Completion backend class
 (defclass xwidget-plus-completion-backend () ((collection) (text)))
 
-(cl-defmethod xwidget-plus-follow-link-candidates ((backend xwidget-plus-completion-backend))
+(cl-defmethod xwidget-plus-follow-link-candidates ((_backend xwidget-plus-completion-backend))
     "Return the BACKEND selected link and the candidates.
 
 The return value is a list whose first element is the selected id
@@ -92,13 +92,14 @@ link and the rest are the candidates ids.
 
 Return nil if the backend does not support narrowing selection list.")
 
-(cl-defmethod xwidget-plus-follow-link-read ((backend xwidget-plus-completion-backend) prompt collection action update-fn)
+(cl-defmethod xwidget-plus-follow-link-read ((_backend xwidget-plus-completion-backend)
+                                             _prompt _collection _action _update-fn)
   "use BACKEND to PROMPT the user for a link in COLLECTION.
 
 ACTION should be called with the resulting link.
 
 UPDATE-FN is a function that can be called when the candidates
-list is narrowed. It will highlight the link list in the
+list is narrowed.It will highlight the link list in the
 browser.")
 
 
@@ -126,7 +127,7 @@ Return nil if the backend does not support narrowing selection list."
 ACTION should be called with the resulting link.
 
 UPDATE-FN is a function that can be called when the candidates
-list is narrowed. It will highlight the link list in the
+list is narrowed.It will highlight the link list in the
 browser."
   (funcall action (cdr (assoc (completing-read prompt (lambda (str pred _)
                                                         (oset backend text str)
@@ -138,6 +139,10 @@ browser."
 
 ;; Ido backend using ido-completing-read
 (with-eval-after-load 'ido
+   ;; tell the compiler these do exists
+  (defvar ido-matches)
+  (declare-function ido-set-matches "ido")
+
   (defclass xwidget-plus-completion-backend-ido (xwidget-plus-completion-backend) ())
 
   (cl-defmethod xwidget-plus-follow-link-candidates ((backend xwidget-plus-completion-backend-ido))
@@ -151,15 +156,25 @@ browser."
       (let ((link (unwind-protect
                       (cdr (assoc (ido-completing-read prompt choices nil t) collection))
                     (oset backend collection nil)
-                    (advice-remove #'ido-set-matches #'update-fn))))
+                    (advice-remove #'ido-set-matches update-fn))))
         (funcall action link)))))
 
 
 ;; Ivy backend using completing read
 (with-eval-after-load 'ivy
+   ;; tell the compiler these do exists
+  (defvar ivy-last)
+  (defvar ivy-text)
+  (defvar ivy--all-candidates)
+  (declare-function ivy-read "ivy")
+  (declare-function ivy-state-buffer "ivy")
+  (declare-function ivy-state-collection "ivy")
+  (declare-function ivy-state-current "ivy")
+  (declare-function ivy--filter "ivy")
+
   (defclass xwidget-plus-completion-backend-ivy (xwidget-plus-completion-backend) ())
 
-  (cl-defmethod xwidget-plus-follow-link-candidates ((backend xwidget-plus-completion-backend-ivy))
+  (cl-defmethod xwidget-plus-follow-link-candidates ((_ xwidget-plus-completion-backend-ivy))
     (with-current-buffer (ivy-state-buffer ivy-last)
       (let* ((collection (ivy-state-collection ivy-last))
              (current (ivy-state-current ivy-last))
@@ -167,12 +182,17 @@ browser."
              (result (cons current candidates)))
         (seq-map (lambda (c) (cdr (nth (get-text-property 0 'idx c) collection))) result))))
 
-  (cl-defmethod xwidget-plus-follow-link-read ((backend xwidget-plus-completion-backend-ivy) prompt collection action update-fn)
-    (ivy-read "Link: " collection :require-match t :action (lambda (v) (funcall action (cdr v))) :update-fn update-fn)))
+  (cl-defmethod xwidget-plus-follow-link-read ((_ xwidget-plus-completion-backend-ivy) prompt collection action update-fn)
+    (ivy-read prompt collection :require-match t :action (lambda (v) (funcall action (cdr v))) :update-fn update-fn)))
 
 
 ;; Helm backend
 (with-eval-after-load 'helm
+   ;; tell the compiler these do exists
+  (declare-function helm "helm")
+  (declare-function helm-get-selection "helm")
+  (declare-function helm-make-source "helm-source")
+
   (defclass xwidget-plus-completion-backend-helm (xwidget-plus-completion-backend) ((candidates)))
 
   (cl-defmethod xwidget-plus-follow-link-candidates ((backend xwidget-plus-completion-backend-helm))
@@ -197,6 +217,14 @@ browser."
                                                               candidates))
           :prompt prompt
           :buffer "*helm-xwidget-plus*")))
+
+;; Tell the compiler that the backend function exists
+(declare-function xwidget-plus-completion-backend-ido "xwidget-plus-follow-link")
+(declare-function xwidget-plus-completion-backend-ido--eieio-childp "xwidget-plus-follow-link")
+(declare-function xwidget-plus-completion-backend-ivy "xwidget-plus-follow-link")
+(declare-function xwidget-plus-completion-backend-ivy--eieio-childp "xwidget-plus-follow-link")
+(declare-function xwidget-plus-completion-backend-helm "xwidget-plus-follow-link")
+(declare-function xwidget-plus-completion-backend-helm--eieio-childp "xwidget-plus-follow-link")
 
 (defun xwidget-plus-follow-link-make-backend ()
   "Instanciate a completion backend."
@@ -249,8 +277,7 @@ browser."
 (defun xwidget-plus-follow-link-callback (links)
   "Ask for a link belonging to the alist LINKS."
   (let* ((xwidget (xwidget-webkit-current-session))
-         (links (xwidget-plus-follow-link-prepare-links links))
-         link)
+         (links (xwidget-plus-follow-link-prepare-links links)))
     (oset xwidget-plus-follow-link-completion-backend-instance collection links)
     (unwind-protect
         (condition-case nil
@@ -258,7 +285,7 @@ browser."
                                            "Link: " links
                                            (apply-partially #'xwidget-plus-follow-link-trigger-action xwidget)
                                            (apply-partially #'xwidget-plus-follow-link-update xwidget))
-          (quit (xwidget-plus-follow-link-cleanupxwidget))))
+          (quit (xwidget-plus-follow-link-cleanup xwidget))))
     (oset xwidget-plus-follow-link-completion-backend-instance collection nil)))
 
 ;;;###autoload
