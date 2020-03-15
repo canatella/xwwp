@@ -137,6 +137,7 @@ and a Lisp function to call it."
     `(progn ,lisp-def ,lisp-store)))
 
 (defun xwidget-plus-js-inject (xwidget ns-name)
+  "Inject the functions defined in NS-NAME into XWIDGET session."
   (let* ((namespace (assoc ns-name xwidget-plus-js-scripts))
          (script (mapconcat #'cdr (cdr namespace) "\n")))
     (xwidget-plus-inject-script xwidget (format "--xwidget-plus-%s" (symbol-name ns-name)) script)))

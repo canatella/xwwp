@@ -94,7 +94,7 @@ Return nil if the backend does not support narrowing selection list.")
 
 (cl-defmethod xwidget-plus-follow-link-read ((_backend xwidget-plus-completion-backend)
                                              _prompt _collection _action _update-fn)
-  "use BACKEND to PROMPT the user for a link in COLLECTION.
+  "Use BACKEND to PROMPT the user for a link in COLLECTION.
 
 ACTION should be called with the resulting link.
 
@@ -122,7 +122,7 @@ Return nil if the backend does not support narrowing selection list."
         (cons nil matches))))
 
 (cl-defmethod xwidget-plus-follow-link-read ((backend xwidget-plus-completion-backend-default) prompt collection action update-fn)
-  "use BACKEND to PROMPT the user for a link in COLLECTION.
+  "Use BACKEND to PROMPT the user for a link in COLLECTION.
 
 ACTION should be called with the resulting link.
 
