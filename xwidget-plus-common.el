@@ -1,4 +1,4 @@
-;;; xwidget-plus-common.el -- Helper functions for xwidget-plus.
+;;; xwidget-plus-common.el -- Helper functions for xwidget-plus. -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2020 Damien Merenne <dam@cosinux.org>
 

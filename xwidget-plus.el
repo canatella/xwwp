@@ -1,4 +1,4 @@
-;;; xwidget-plus.el --- Improve xwidget usability
+;;; xwidget-plus.el --- Improve xwidget usability -*- lexical-binding: t; -*-
 
 ;; Author: Damien Merenne
 ;; URL: https://github.com/canatella/xwidget-plus
@@ -42,7 +42,6 @@
 (require 'xwidget-plus-common)
 (require 'xwidget-plus-follow-link)
 
-;; Bring the window to front when summoning browse
 ;;;###autoload
 (defun xwidget-plus-browse-url (url &optional new-session)
   "Ask xwidget-webkit to browse URL.
@@ -60,12 +59,6 @@ Interactively, URL defaults to the string looking like a url around point."
         (xwidget-webkit-new-session url)
       (progn (xwidget-webkit-goto-url url)
              (switch-to-buffer-other-window (xwidget-buffer (xwidget-webkit-current-session)))))))
-
-;; Local Variables:
-;; eval: (mmm-mode)
-;; eval: (mmm-add-classes '((elisp-js :submode js-mode :face mmm-code-submode-face :delimiter-mode nil :front "--js \"" :back "\" js--")))
-;; mmm-classes: elisp-js
-;; End:
 
 (provide 'xwidget-plus)
 ;;; xwidget-plus.el ends here
