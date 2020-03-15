@@ -109,13 +109,14 @@ null;
 (defun xwidget-plus-js-funcall (xwidget namespace name &rest arguments)
   "Invoke javascript FUNCTION in XWIDGET instance passing ARGUMENTS witch CALLBACK in NAMESPACE."
   ;;; Try to be smart
-  (let* ((json-args (seq-map #'json-encode arguments))
+  (let* ((callback (car (last arguments)))
+         (arguments (if (functionp callback) (reverse (cdr (reverse arguments))) arguments))
+         (json-args (seq-map #'json-encode arguments))
          (arg-string (string-join json-args ", "))
          (namespace (xwidget-plus-lisp-to-js namespace))
          (name (xwidget-plus-lisp-to-js name))
-         (callback (let ((cb (car (last arguments)))) (when (functionp cb) cb)))
          (script (format "__xwidget_plus_%s_%s(%s)" namespace name arg-string)))
-    (xwidget-webkit-execute-script xwidget script callback)))
+    (xwidget-webkit-execute-script xwidget script (and (functionp callback) callback))))
 
 (defmacro xwidget-plus-js-def (namespace name arguments docstring js-body)
   "Create a function NAME with ARGUMENTS, DOCSTRING and JS-BODY.
