@@ -21,8 +21,8 @@
 
 ;;; Code:
 
-
 (when (> emacs-major-version 26)
+  (require 'debug)
   (defun ert--print-backtrace (frames)
     (insert (backtrace-to-string frames))))
 
