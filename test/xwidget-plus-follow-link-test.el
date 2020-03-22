@@ -223,7 +223,7 @@ return '' + window.location;
 ;; eval: (mmm-add-group 'elisp-js '((elisp-rawjs :submode js-mode
 ;;                                               :face mmm-code-submode-face
 ;;                                               :delimiter-mode nil
-;;                                               :front "--js \"" :back "\" js--")
+;;                                               :front "xwidget-plus--js \"" :back "\" js--")
 ;;                                  (elisp-defjs :submode js-mode
 ;;                                               :face mmm-code-submode-face
 ;;                                               :delimiter-mode nil

@@ -55,7 +55,7 @@ returns an instance of an eieio class extending
   "Generate a css CLASS definition from the STYLE alist."
   (format ".%s { %s }\\n" class (mapconcat (lambda (v) (format "%s: %s;" (car v) (cdr v))) style " ")))
 
-(defmacro --js (js _ &rest replacements)
+(defmacro xwidget-plus--js (js _ &rest replacements)
   "Apply `format' on JS with REPLACEMENTS  providing MMM mode delimiters.
 
 This file has basic support for javascript using MMM mode and
@@ -73,7 +73,7 @@ local variables (see at the end of the file)."
          (tag (xwidget-plus-js-string-escape tag))
          (type (xwidget-plus-js-string-escape type))
          (content (xwidget-plus-js-string-escape content))
-         (script (--js "
+         (script (xwidget-plus--js "
 __xwidget_id = '%s';
 if (!document.getElementById(__xwidget_id)) {
     var e = document.createElement('%s');
@@ -136,7 +136,7 @@ and a Lisp function to call it."
          (js-name (xwidget-plus-lisp-to-js name))
          (js-namespace (xwidget-plus-lisp-to-js namespace))
          (lisp-arguments (append '(xwidget) arguments '(&optional callback)))
-         (script (--js "function __xwidget_plus_%s_%s(%s) {%s};" js--
+         (script (xwidget-plus--js "function __xwidget_plus_%s_%s(%s) {%s};" js--
                    js-namespace js-name (string-join js-arguments ", ") (eval js-body)))
          (lisp-def  `(defun ,(intern (format "xwidget-plus-%s-%s" namespace name)) ,lisp-arguments
                        ,docstring
@@ -155,7 +155,7 @@ and a Lisp function to call it."
 ;; eval: (mmm-add-group 'elisp-js '((elisp-rawjs :submode js-mode
 ;;                                               :face mmm-code-submode-face
 ;;                                               :delimiter-mode nil
-;;                                               :front "--js \"" :back "\" js--")
+;;                                               :front "xwidget-plus--js \"" :back "\" js--")
 ;;                                  (elisp-defjs :submode js-mode
 ;;                                               :face mmm-code-submode-face
 ;;                                               :delimiter-mode nil

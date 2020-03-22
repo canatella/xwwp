@@ -32,6 +32,7 @@
 (require 'xwidget)
 (require 'xwidget-plus-common)
 (require 'eieio)
+(require 'cl-lib)
 
 (defcustom xwidget-plus-follow-link-candidate-style '(("border" . "1px dashed blue")
                                                       ("background" . "#0000ff20"))
@@ -311,7 +312,7 @@ browser."
 ;; eval: (mmm-add-group 'elisp-js '((elisp-rawjs :submode js-mode
 ;;                                               :face mmm-code-submode-face
 ;;                                               :delimiter-mode nil
-;;                                               :front "--js \"" :back "\" js--")
+;;                                               :front "xwidget-plus--js \"" :back "\" js--")
 ;;                                  (elisp-defjs :submode js-mode
 ;;                                               :face mmm-code-submode-face
 ;;                                               :delimiter-mode nil
