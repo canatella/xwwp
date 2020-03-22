@@ -1,3 +1,4 @@
+(source gnu)
 (source melpa)
 
 (package "xwidget-plus" "0.1" "xwidget-webkit enhancement.")
