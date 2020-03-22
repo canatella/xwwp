@@ -9,6 +9,7 @@
              :branch "win-fix"
              :files (:defaults ("reporters" "reporters/*") ("bin" "bin/*")))
  (depends-on "ert-async")
+ (depends-on "package-lint")
  (depends-on "with-simulated-input")
  (depends-on "ivy")
  (depends-on "helm"))
