@@ -1,12 +1,15 @@
-;;; xwidget-plus-common.el --- Helper functions for xwidget-plus. -*- lexical-binding: t; -*-
+;;; xwwp.el --- Enhance xwidget webkit browser -*- lexical-binding: t; -*-
+
+;; Author: Damien Merenne
+;; URL: https://github.com/canatella/xwwp
+;; Created: 2020-03-11
+;; Keywords: convenience
+;; Version: 0.1
+;; Package-Requires: ((emacs "26.1"))
 
 ;; Copyright (C) 2020 Damien Merenne <dam@cosinux.org>
 
 ;; This file is NOT part of GNU Emacs.
-
-;;; Commentary:
-
-;; Shared functions for the xwidget-plus package.
 
 ;;; License:
 
@@ -25,37 +28,27 @@
 
 ;;; Commentary:
 
-;;
+;; This package provides the common functionnality for other xwidget webkit plus
+;; packages.  It provides the customize group and a framework to inject css and
+;; javascript functions into an `xwidget-webkit' session.
 
 ;;; Code:
 
-(defgroup xwidget-plus nil
-  "Augment the xwidget webkit browser."
+(defgroup xwwp nil
+  "`xwidget-webkit' browser enhancement suite."
   :group 'convenience)
 
-(defcustom xwidget-plus-completion-system 'default
-  "The completion system to be used by xwidget plus.
 
-Custom function should be a function that takes no arguments and
-returns an instance of an eieio class extending
-`xwidget-plus-completion-backend'."
-  :group 'xwidget-plus
-  :type '(radio
-          (const :tag "Ido" ido)
-          (const :tag "Helm" helm)
-          (const :tag "Ivy" ivy)
-          (const :tag "Default" default)
-          (function :tag "Custom function")))
 
 (require 'json)
 (require 'subr-x)
 (require 'xwidget)
 
-(defun xwidget-plus-make-class (class style)
+(defun xwwp-css-make-class (class style)
   "Generate a css CLASS definition from the STYLE alist."
   (format ".%s { %s }\\n" class (mapconcat (lambda (v) (format "%s: %s;" (car v) (cdr v))) style " ")))
 
-(defmacro xwidget-plus--js (js _ &rest replacements)
+(defmacro xwwp--js (js _ &rest replacements)
   "Apply `format' on JS with REPLACEMENTS  providing MMM mode delimiters.
 
 This file has basic support for javascript using MMM mode and
@@ -63,17 +56,17 @@ local variables (see at the end of the file)."
   (declare (indent 2))
   `(format ,js ,@replacements))
 
-(defun xwidget-plus-js-string-escape (string)
+(defun xwwp-js-string-escape (string)
   "Escape STRING for injection."
   (replace-regexp-in-string "\n" "\\\\n" (replace-regexp-in-string "'" "\\\\'" string)))
 
-(defun xwidget-plus-inject-head-element (xwidget tag id type content)
+(defun xwwp-html-inject-head-element (xwidget tag id type content)
   "Insert TAG element under XWIDGET head with ID TYPE and CONTENT."
-  (let* ((id (xwidget-plus-js-string-escape id))
-         (tag (xwidget-plus-js-string-escape tag))
-         (type (xwidget-plus-js-string-escape type))
-         (content (xwidget-plus-js-string-escape content))
-         (script (xwidget-plus--js "
+  (let* ((id (xwwp-js-string-escape id))
+         (tag (xwwp-js-string-escape tag))
+         (type (xwwp-js-string-escape type))
+         (content (xwwp-js-string-escape content))
+         (script (xwwp--js "
 __xwidget_id = '%s';
 if (!document.getElementById(__xwidget_id)) {
     var e = document.createElement('%s');
@@ -86,82 +79,82 @@ null;
 " js-- id tag type content)))
     (xwidget-webkit-execute-script xwidget script)))
 
-(defun xwidget-plus-inject-script (xwidget id script)
+(defun xwwp-html-inject-script (xwidget id script)
   "Inject javascript SCRIPT in XWIDGET session using a script element with ID."
-  (xwidget-plus-inject-head-element xwidget "script" id "text/javascript" script))
+  (xwwp-html-inject-head-element xwidget "script" id "text/javascript" script))
 
-(defun xwidget-plus-inject-style (xwidget id style)
+(defun xwwp-html-inject-style (xwidget id style)
   "Inject css STYLE in XWIDGET session using a style element with ID."
-  (xwidget-plus-inject-head-element xwidget "style" id "text/css" style))
+  (xwwp-html-inject-head-element xwidget "style" id "text/css" style))
 
-(defun xwidget-plus-lisp-to-js (identifier)
+(defun xwwp-js-lisp-to-js (identifier)
   "Convert IDENTIFIER from Lisp style to javascript style."
   (replace-regexp-in-string "-" "_" (if (symbolp identifier) (symbol-name identifier) identifier)))
 
-(defvar xwidget-plus-js-scripts '() "An  alist of list of javascript function.")
+(defvar xwwp-js-scripts '() "An  alist of list of javascript function.")
 
-(defun xwidget-plus-js-register-function (ns-name name js-script)
+(defun xwwp-js-register-function (ns-name name js-script)
   "Register javascript function NAME in namespace NS-NAME with body JS-SCRIPT."
-  (let* ((namespace (assoc ns-name xwidget-plus-js-scripts))
+  (let* ((namespace (assoc ns-name xwwp-js-scripts))
          (fun (when namespace (assoc name (cdr namespace)))))
     (cond (fun
            (delete fun namespace)
-           (xwidget-plus-js-register-function ns-name name js-script))
+           (xwwp-js-register-function ns-name name js-script))
           ((not namespace)
-           (push (cons ns-name '()) xwidget-plus-js-scripts)
-           (xwidget-plus-js-register-function ns-name name js-script))
+           (push (cons ns-name '()) xwwp-js-scripts)
+           (xwwp-js-register-function ns-name name js-script))
           (t
            (push (cons name js-script) (cdr namespace))))
     (cons ns-name name)))
 
-(defun xwidget-plus-js-funcall (xwidget namespace name &rest arguments)
+(defun xwwp-js-funcall (xwidget namespace name &rest arguments)
   "Invoke javascript function NAME in XWIDGET instance passing ARGUMENTS witch CALLBACK in NAMESPACE."
   ;;; Try to be smart
   (let* ((callback (car (last arguments)))
          (arguments (if (functionp callback) (reverse (cdr (reverse arguments))) arguments))
          (json-args (seq-map #'json-encode arguments))
          (arg-string (string-join json-args ", "))
-         (namespace (xwidget-plus-lisp-to-js namespace))
-         (name (xwidget-plus-lisp-to-js name))
+         (namespace (xwwp-js-lisp-to-js namespace))
+         (name (xwwp-js-lisp-to-js name))
          (script (format "__xwidget_plus_%s_%s(%s)" namespace name arg-string)))
     (xwidget-webkit-execute-script xwidget script (and (functionp callback) callback))))
 
-(defmacro xwidget-plus-js-def (namespace name arguments docstring js-body)
+(defmacro xwwp-js-def (namespace name arguments docstring js-body)
   "Create a function NAME with ARGUMENTS, DOCSTRING and JS-BODY.
 
 This will define a javascript function in the namespace NAMESPACE
 and a Lisp function to call it."
   (declare (indent 3) (doc-string 4))
-  (let* ((js-arguments (seq-map #'xwidget-plus-lisp-to-js arguments))
-         (js-name (xwidget-plus-lisp-to-js name))
-         (js-namespace (xwidget-plus-lisp-to-js namespace))
+  (let* ((js-arguments (seq-map #'xwwp-js-lisp-to-js arguments))
+         (js-name (xwwp-js-lisp-to-js name))
+         (js-namespace (xwwp-js-lisp-to-js namespace))
          (lisp-arguments (append '(xwidget) arguments '(&optional callback)))
-         (script (xwidget-plus--js "function __xwidget_plus_%s_%s(%s) {%s};" js--
+         (script (xwwp--js "function __xwidget_plus_%s_%s(%s) {%s};" js--
                    js-namespace js-name (string-join js-arguments ", ") (eval js-body)))
-         (lisp-def  `(defun ,(intern (format "xwidget-plus-%s-%s" namespace name)) ,lisp-arguments
+         (lisp-def  `(defun ,(intern (format "xwwp-%s-%s" namespace name)) ,lisp-arguments
                        ,docstring
-                       (xwidget-plus-js-funcall xwidget (quote ,namespace) (quote ,name) ,@arguments callback)))
-         (lisp-store `(xwidget-plus-js-register-function (quote ,namespace) (quote ,name) ,script)))
+                       (xwwp-js-funcall xwidget (quote ,namespace) (quote ,name) ,@arguments callback)))
+         (lisp-store `(xwwp-js-register-function (quote ,namespace) (quote ,name) ,script)))
     `(progn ,lisp-def ,lisp-store)))
 
-(defun xwidget-plus-js-inject (xwidget ns-name)
+(defun xwwp-js-inject (xwidget ns-name)
   "Inject the functions defined in NS-NAME into XWIDGET session."
-  (let* ((namespace (assoc ns-name xwidget-plus-js-scripts))
+  (let* ((namespace (assoc ns-name xwwp-js-scripts))
          (script (mapconcat #'cdr (cdr namespace) "\n")))
-    (xwidget-plus-inject-script xwidget (format "--xwidget-plus-%s" (symbol-name ns-name)) script)))
+    (xwwp-html-inject-script xwidget (format "--xwwp-%s" (symbol-name ns-name)) script)))
 
 ;; Local Variables:
 ;; eval: (mmm-mode)
 ;; eval: (mmm-add-group 'elisp-js '((elisp-rawjs :submode js-mode
 ;;                                               :face mmm-code-submode-face
 ;;                                               :delimiter-mode nil
-;;                                               :front "xwidget-plus--js \"" :back "\" js--")
+;;                                               :front "xwwp--js \"" :back "\" js--")
 ;;                                  (elisp-defjs :submode js-mode
 ;;                                               :face mmm-code-submode-face
 ;;                                               :delimiter-mode nil
-;;                                               :front "xwidget-plus-defjs .*\n.*\"\"\n" :back "\")\n")))
+;;                                               :front "xwwp-defjs .*\n.*\"\"\n" :back "\")\n")))
 ;; mmm-classes: elisp-js
 ;; End:
 
-(provide 'xwidget-plus-common)
-;;; xwidget-plus-common.el ends here
+(provide 'xwwp)
+;;; xwwp.el ends here

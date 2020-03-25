@@ -3,11 +3,11 @@
 This package enhance the integrated xwidget-webkit browser with hopefully useful
 functionnalities.
 
-![CI](https://github.com/canatella/xwidget-plus/workflows/CI/badge.svg?branch=master)
+![CI](https://github.com/canatella/xwwp/workflows/CI/badge.svg?branch=master)
 
 ## Follow link
 
-Using `xwidget-plus-follow-link` to choose a link on the current web
+Using `xwwp-follow-link` to choose a link on the current web
 page. It also highlight the candidates on the web page.
 
 ![Imgur](https://i.imgur.com/1KO70FE.gif)
@@ -18,19 +18,19 @@ with your backend of choice and I'll have a look at what can be done. Or better,
 fork and create a pull request, most of the needed code is already there, it
 just needs to be hooked.
 
-## Switch to xwidget on browse
-
-This package provides the `xwiget-plus-browse-url` function. Unlike
-`xwidget-webkit-browse-url`, when reusing an existing session, it will bring it
-to the front.
-
 ## How to install
 
 Sorry, no melpa as of now. Should be added quite soon.
 
 ```
-(use-package xwidget-plus
-  :load-path "~/.emacs.d/xwidget-plus"
+(use-package xwwp-follow-link
+  :load-path "~/.emacs.d/xwwp-follow-link"
   :bind (:map xwidget-webkit-mode-map
-              ("v" . xwidget-plus-follow-link)))
+              ("v" . xwwp-follow-link)))
 ```
+
+## Development
+
+The goal of this package is to enhance the `xwidget-webkit` browser. If you have
+any code or feature suggestion that you think should make it into this package,
+please open an issue or better, create a pull request!

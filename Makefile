@@ -16,7 +16,7 @@ TESTS        = $(wildcard test/*.el)
 TAR          = $(DIST)/__PROJECT-NAME__-$(VERSION).tar
 
 
-.PHONY: all check test unit lint install uninstall reinstall clean-all clean clean-elc
+.PHONY: all check test unit lint install uninstall reinstall clean-all clean clean-elc compile package-lint
 
 all : $(PKG_DIR) $(TAR)
 
@@ -56,12 +56,15 @@ test: unit
 unit: $(PKG_DIR)
 	${CASK} exec ert-runner --win
 
-lint : $(SRCS) clean-elc
+lint : compile package-lint
+
+compile: ${SRCS} clean-elc
 	# Byte compile all and stop on any warning or error
 	${CASK} emacs $(EMACSFLAGS) \
 	--eval "(setq byte-compile-error-on-warn t)" \
 	-L . -f batch-byte-compile ${SRCS}
 
+package-lint: ${SRCS}
 	# Run package-lint to check for packaging mistakes
 	${CASK} emacs $(EMACSFLAGS) \
 	-l package-lint.el \

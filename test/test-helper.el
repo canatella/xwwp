@@ -27,22 +27,22 @@
     (insert (backtrace-to-string frames))))
 
 
-(defconst xwidget-plus-test-path (file-name-as-directory
+(defconst xwwp-test-path (file-name-as-directory
                              (file-name-directory (or load-file-name buffer-file-name)))
   "The test directory.")
 
-(defconst xwidget-plus-test-data-path (file-name-as-directory
-                                       (concat xwidget-plus-test-path "data"))
+(defconst xwwp-test-data-path (file-name-as-directory
+                                       (concat xwwp-test-path "data"))
   "The test data directory.")
 
-(defconst xwidget-plus-root-path (file-name-as-directory
+(defconst xwwp-root-path (file-name-as-directory
                                          (file-name-directory
-                                          (directory-file-name xwidget-plus-test-path)))
+                                          (directory-file-name xwwp-test-path)))
   "The package root path.")
 
-(add-to-list 'load-path xwidget-plus-root-path)
+(add-to-list 'load-path xwwp-root-path)
 
-(defun xwidget-plus-event-dispatch (&optional seconds)
+(defun xwwp-event-dispatch (&optional seconds)
   (save-excursion
     (with-current-buffer (xwidget-buffer (xwidget-webkit-last-session))
       (let ((event (read-event nil nil seconds)))
@@ -51,26 +51,26 @@
           (xwidget-event-handler))
         event))))
 
-(defun xwidget-plus-event-loop ()
+(defun xwwp-event-loop ()
   (save-excursion
     (with-current-buffer (xwidget-buffer (xwidget-webkit-last-session))
-      (while (xwidget-plus-event-dispatch 0.3)))))
+      (while (xwwp-event-dispatch 0.3)))))
 
 (defmacro with-browse (file &rest body)
   (declare (indent 1))
-  (let ((url (format "file://%s%s" (expand-file-name xwidget-plus-test-data-path) file)))
+  (let ((url (format "file://%s%s" (expand-file-name xwwp-test-data-path) file)))
     `(progn
        (xwidget-webkit-browse-url ,url)
        ;; this will trigger a loading event
-       (xwidget-plus-event-dispatch)
+       (xwwp-event-dispatch)
        (let ((xwidget (xwidget-webkit-last-session)))
-         (xwidget-plus-js-inject xwidget 'test)
-         (xwidget-plus-event-loop)
+         (xwwp-js-inject xwidget 'test)
+         (xwwp-event-loop)
          (with-current-buffer (xwidget-buffer xwidget)
            ,@body)))))
 
 
-(defun xwidget-plus-wait-for (script)
+(defun xwwp-wait-for (script)
   "Wait until scripts evaluate to true")
 (provide 'test-helper)
 ;;; test-helper.el ends here

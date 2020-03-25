@@ -1,8 +1,8 @@
 (source gnu)
 (source melpa)
 
-(package "xwidget-plus" "0.1" "xwidget-webkit enhancement.")
-(package-file "xwidget-plus.el")
+(package "xwwp" "0.1" "xwidget-webkit enhancement.")
+(package-file "xwwp.el")
 
 (development
  (depends-on "ert-runner"
