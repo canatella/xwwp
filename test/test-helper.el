@@ -24,7 +24,16 @@
 (when (> emacs-major-version 26)
   (require 'debug)
   (defun ert--print-backtrace (frames)
-    (insert (backtrace-to-string frames))))
+    (unless frames (setq frames (backtrace-get-frames 'backtrace-to-string)))
+    (let ((backtrace-fontify nil))
+    (with-temp-buffer
+      (backtrace-mode)
+      (setq backtrace-view '(:show-flags t)
+            backtrace-frames frames
+            backtrace-print-function #'cl-prin1)
+      (backtrace-print)
+      (ert-runner-message "%s" (substring-no-properties (filter-buffer-substring (point-min)
+                                                                                 (point-max))))))))
 
 
 (defconst xwwp-test-path (file-name-as-directory
