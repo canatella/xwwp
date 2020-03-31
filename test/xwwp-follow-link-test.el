@@ -198,16 +198,6 @@ return '' + window.location;
     `(cl-letf (((symbol-function 'require) (lambda (f &optional filename no-errors) (eq (quote ,fsym) f))))
        ,@body)))
 
-(ert-deftest test-xwwp-follow-link-make-backend-use-feature ()
-  (with-feature nil
-    (should (eq #'xwwp-follow-link-completion-backend-default (xwwp-follow-link-make-backend))))
-  (with-feature ido
-    (should (eq #'xwwp-follow-link-completion-backend-ido (xwwp-follow-link-make-backend))))
-  (with-feature ivy
-    (should (eq #'xwwp-follow-link-completion-backend-ivy (xwwp-follow-link-make-backend))))
-  (with-feature helm
-    (should (eq #'xwwp-follow-link-completion-backend-helm (xwwp-follow-link-make-backend)))))
-
 (ert-deftest test-xwwp-follow-link-make-backend-use-custom ()
   (let ((xwwp-follow-link-completion-system 'default))
     (with-feature nil
