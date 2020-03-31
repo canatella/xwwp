@@ -1,12 +1,5 @@
 ;;; xwwp-follow-link.el --- Link navigation in `xwidget-webkit' sessions -*- lexical-binding: t; -*-
 
-;; Author: Damien Merenne
-;; URL: https://github.com/canatella/xwwp
-;; Created: 2020-03-11
-;; Keywords: convenience
-;; Version: 0.1
-;; Package-Requires: ((emacs "26.1") (xwwp "0.1"))
-
 ;; Copyright (C) 2020 Damien Merenne <dam@cosinux.org>
 
 ;; This file is NOT part of GNU Emacs.
