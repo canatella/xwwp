@@ -18,13 +18,15 @@ with your backend of choice and I'll have a look at what can be done. Or better,
 fork and create a pull request, most of the needed code is already there, it
 just needs to be hooked.
 
-## How to install
+### How to install
 
 Sorry, no melpa as of now. Should be added quite soon.
 
 ```
 (use-package xwwp-follow-link
   :load-path "~/.emacs.d/xwwp-follow-link"
+  :custom
+  (xwwp-follow-link-completion-system 'ivy)
   :bind (:map xwidget-webkit-mode-map
               ("v" . xwwp-follow-link)))
 ```
