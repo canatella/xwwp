@@ -143,6 +143,24 @@ and a Lisp function to call it."
          (script (mapconcat #'cdr (cdr namespace) "\n")))
     (xwwp-html-inject-script xwidget (format "--xwwp-%s" (symbol-name ns-name)) script)))
 
+;;;###autoload
+(defun xwwp-browse-url-other-window (url &optional new-session)
+  "Ask xwidget-webkit to browse URL.
+NEW-SESSION specifies whether to create a new xwidget-webkit session.
+Interactively, URL defaults to the string looking like a url around point."
+  (interactive (progn
+                 (require 'browse-url)
+                 (browse-url-interactive-arg "xwidget-webkit URL: "
+                                             ;;(xwidget-webkit-current-url)
+                                             )))
+  (or (featurep 'xwidget-internal)
+      (user-error "Your Emacs was not compiled with xwidgets support"))
+  (when (stringp url)
+    (if new-session
+        (xwidget-webkit-new-session url)
+      (progn (xwidget-webkit-goto-url url)
+             (switch-to-buffer-other-window (xwidget-buffer (xwidget-webkit-current-session)))))))
+
 ;; Local Variables:
 ;; eval: (mmm-mode)
 ;; eval: (mmm-add-group 'elisp-js '((elisp-rawjs :submode js-mode

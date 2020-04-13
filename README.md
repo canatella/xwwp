@@ -18,6 +18,13 @@ with your backend of choice and I'll have a look at what can be done. Or better,
 fork and create a pull request, most of the needed code is already there, it
 just needs to be hooked.
 
+## Browse url in other window
+
+The `xwidget-webkit-browse-url` just update the current xwidget-webkit buffer
+but does not bring it to the front (at least on MacOS), which is what you would
+expect. The `xwwp-browse-url-orther-window` method will also bring it to the
+front using `swith-to-buffer-other-window`.
+
 ### How to install
 
 Sorry, no melpa as of now. Should be added quite soon.
