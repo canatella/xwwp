@@ -22,7 +22,6 @@
 ;;; Code:
 
 (require 'cl-lib)
-(require 'test-helper)
 (require 'with-simulated-input)
 (require 'xwwp-follow-link)
 (require 'xwwp-follow-link-ido)

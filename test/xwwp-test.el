@@ -21,7 +21,6 @@
 
 ;;; Code:
 
-(require 'test-helper)
 (require 'xwwp)
 
 (ert-deftest test-xwwp-js-register-function ()

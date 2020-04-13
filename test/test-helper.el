@@ -81,5 +81,5 @@
 
 (defun xwwp-wait-for (script)
   "Wait until scripts evaluate to true")
-(provide 'test-helper)
+
 ;;; test-helper.el ends here
