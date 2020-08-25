@@ -217,13 +217,12 @@ browser."
   (let* ((xwidget (xwidget-webkit-current-session))
          (links (xwwp-follow-link-prepare-links links)))
     (oset xwwp-follow-link-completion-backend-instance collection links)
-    (unwind-protect
-        (condition-case nil
-            (xwwp-follow-link-read xwwp-follow-link-completion-backend-instance
-                                   "Link: " links
-                                   (apply-partially #'xwwp-follow-link-trigger-action xwidget)
-                                   (apply-partially #'xwwp-follow-link-update xwidget))
-          (quit (xwwp-follow-link-cleanup xwidget))))
+    (condition-case nil
+        (xwwp-follow-link-read xwwp-follow-link-completion-backend-instance
+                               "Link: " links
+                               (apply-partially #'xwwp-follow-link-trigger-action xwidget)
+                               (apply-partially #'xwwp-follow-link-update xwidget))
+      (quit (xwwp-follow-link-cleanup xwidget)))
     (oset xwwp-follow-link-completion-backend-instance collection nil)))
 
 ;;;###autoload
