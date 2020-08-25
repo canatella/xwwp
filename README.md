@@ -18,6 +18,15 @@ with your backend of choice and I'll have a look at what can be done. Or better,
 fork and create a pull request, most of the needed code is already there, it
 just needs to be hooked.
 
+## DWIM style `M-x xwwp`
+
+DWIM style command adapted from `eww`, smarter than the original `xwidget-webkit-browse-url`.
+Automatically prefixes and expands the url, and use `xwwp-search-prefix` to search for it
+if input doesn't look like an URL or a domain name.
+
+If called with a prefix ARG, create a new Webkit session instead of reusing
+the default Webkit session.
+
 ## Browse url in other window
 
 The `xwidget-webkit-browse-url` just update the current xwidget-webkit buffer
@@ -27,8 +36,7 @@ front using `swith-to-buffer-other-window`.
 
 ### How to install
 
-Sorry, no melpa as of now. Should be added quite soon.
-
+Clone the repo locally and
 ```
 (use-package xwwp-follow-link
   :load-path "~/.emacs.d/xwwp-follow-link"
@@ -38,8 +46,16 @@ Sorry, no melpa as of now. Should be added quite soon.
               ("v" . xwwp-follow-link)))
 ```
 
+Or via Melpa `M-x package-install xwwp`,
+and setup for your completion backend via variable `xwwp-follow-link-completion-system`
+
 ## Development
 
 The goal of this package is to enhance the `xwidget-webkit` browser. If you have
 any code or feature suggestion that you think should make it into this package,
 please open an issue or better, create a pull request!
+
+## Authors
+
+- Damien Merenne <dam@cosinux.org>
+- Q. Hong <qhong@mit.edu>
