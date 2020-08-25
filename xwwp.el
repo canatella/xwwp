@@ -161,6 +161,48 @@ Interactively, URL defaults to the string looking like a url around point."
       (progn (xwidget-webkit-goto-url url)
              (switch-to-buffer-other-window (xwidget-buffer (xwidget-webkit-current-session)))))))
 
+;;; Adapted from EWW code to provide a DWIM style XWWP command
+(require 'eww)
+(require 'puny)
+
+(defcustom xwwp-search-prefix "https://google.com/search?q="
+  "Prefix URL to search engine."
+  :group 'xwwp
+  :type 'string)
+
+(defun xwwp (url &optional arg)
+  "Fetch URL and render the page.
+If the input doesn't look like an URL or a domain name, the
+word(s) will be searched for via `xwwp-search-prefix'.
+
+If called with a prefix ARG, create a new Webkit buffer instead of reusing
+the default Webkit buffer."
+  (interactive
+   (let* ((uris (eww-suggested-uris))
+	      (prompt (concat "Enter URL or keywords"
+			              (if uris (format " (default %s)" (car uris)) "")
+			              ": ")))
+     (list (read-string prompt nil 'eww-prompt-history uris)
+           (prefix-numeric-value current-prefix-arg))))
+  (setq url
+        (let ((eww-search-prefix xwwp-search-prefix))
+          (eww--dwim-expand-url url)))
+  ;; Check whether the domain only uses "Highly Restricted" Unicode
+  ;; IDNA characters.  If not, transform to punycode to indicate that
+  ;; there may be funny business going on.
+  (let ((parsed (url-generic-parse-url url)))
+    (when (url-host parsed)
+      (unless (puny-highly-restrictive-domain-p (url-host parsed))
+        (setf (url-host parsed) (puny-encode-domain (url-host parsed)))))
+    ;; When the URL is on the form "http://a/../../../g", chop off all
+    ;; the leading "/.."s.
+    (when (url-filename parsed)
+      (while (string-match "\\`/[.][.]/" (url-filename parsed))
+        (setf (url-filename parsed) (substring (url-filename parsed) 3))))
+    (setq url (url-recreate-url parsed)))
+  (xwwp-browse-url-other-window url (eq arg 4)))
+
+
 ;; Local Variables:
 ;; eval: (mmm-mode)
 ;; eval: (mmm-add-group 'elisp-js '((elisp-rawjs :submode js-mode
