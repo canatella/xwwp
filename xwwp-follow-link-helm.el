@@ -46,9 +46,8 @@
 (cl-defmethod xwwp-follow-link-candidates ((backend xwwp-follow-link-completion-backend-helm))
   (let* ((candidates (oref backend candidates))
          (selection (helm-get-selection))
-         (selected (when selection (cdr (elt (oref backend collection) selection))))
          (result (seq-map #'cdr candidates)))
-    (cons selected result)))
+    (cons selection result)))
 
 (cl-defmethod xwwp-follow-link-read ((backend xwwp-follow-link-completion-backend-helm) prompt collection action update-fn)
   (add-hook 'helm-after-initialize-hook (lambda ()
