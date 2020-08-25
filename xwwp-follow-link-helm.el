@@ -55,16 +55,16 @@
                                           (with-current-buffer "*helm-xwwp*"
                                             (add-hook 'helm-move-selection-after-hook update-fn nil t)))
             nil t)
-  (helm :sources
-        (helm-make-source "Xwidget Plus" 'helm-source-sync
-                          :candidates collection
-                          :action action
-                          :filtered-candidate-transformer (lambda (candidates _)
-                                                            (oset backend candidates candidates)
-                                                            (funcall update-fn)
-                                                            candidates))
-        :prompt prompt
-        :buffer "*helm-xwwp*"))
+  (or (helm :sources
+            (helm-make-source "Xwidget Plus" 'helm-source-sync
+              :candidates collection
+              :action action
+              :filtered-candidate-transformer (lambda (candidates _)
+                                                (oset backend candidates candidates)
+                                                (funcall update-fn)
+                                                candidates))
+            :prompt prompt
+            :buffer "*helm-xwwp*") (signal 'quit nil)))
 
 (provide 'xwwp-follow-link-helm)
 ;;; xwwp-follow-link-helm.el ends here
