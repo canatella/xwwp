@@ -1,6 +1,6 @@
 ;;; xwwp-follow-link.el --- Link navigation in `xwidget-webkit' sessions -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2020 Damien Merenne <dam@cosinux.org>
+;; Copyright (C) 2020 Damien Merenne <dam@cosinux.org>, Q. Hong <qhong@mit.edu>
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -69,14 +69,15 @@ returns an instance of an eieio class extending
 
 (xwwp-js-def follow-link cleanup ()
   "Remove all custom class from links.""
-document.querySelectorAll('a').forEach(a => {
+window.__xwidget_plus_follow_link_candidates.forEach(a => {
     a.classList.remove('xwwp-follow-link-candidate', 'xwwp-follow-link-selected');
 });
+window.__xwidget_plus_follow_link_candidates = null;
 ")
 
 (xwwp-js-def follow-link highlight (ids selected)
   "Highlight IDS as candidate and SELECTED as selected.""
-document.querySelectorAll('a').forEach((a, id) => {
+window.__xwidget_plus_follow_link_candidates.forEach((a, id) => {
     a.classList.remove('xwwp-follow-link-candidate', 'xwwp-follow-link-selected');
     if (selected == id) {
         a.classList.add('xwwp-follow-link-selected');
@@ -89,17 +90,19 @@ document.querySelectorAll('a').forEach((a, id) => {
 
 (xwwp-js-def follow-link action (link-id)
   "Click on the link identified by LINK-ID""
+let selected = window.__xwidget_plus_follow_link_candidates[link_id];
 __xwidget_plus_follow_link_cleanup();
-document.querySelectorAll('a')[link_id].click();
+selected.click();
 ")
 
 (xwwp-js-def follow-link fetch-links ()
   "Fetch all visible, non empty links from the current page.""
 var r = {};
-document.querySelectorAll('a').forEach((a, i) => {
+window.__xwidget_plus_follow_link_candidates = Array.from(document.querySelectorAll('a'));
+window.__xwidget_plus_follow_link_candidates.forEach((a, i) => {
     if (a.offsetWidth || a.offsetHeight || a.getClientRects().length) {
         if (a.innerText.match(/\\\\S/))
-            r[i] = a.innerText;
+            r[i] = [a.innerText, a.href];
     }
 });
 return r;
@@ -188,16 +191,18 @@ browser."
 (defvar xwwp-follow-link-completion-backend-instance '())
 
 (defun xwwp-follow-link-update (xwidget)
-  "Highligh LINKS in XWIDGET buffer when updating candidates."
+  "Highlight LINKS in XWIDGET buffer when updating candidates."
   (let ((links (xwwp-follow-link-candidates xwwp-follow-link-completion-backend-instance)))
     (when links
       (let* ((selected (car links))
              (candidates (cdr links)))
-        (xwwp-follow-link-highlight xwidget candidates selected)))))
+        (xwwp-follow-link-highlight xwidget (mapcar 'car candidates) (car selected))))))
 
 (defun xwwp-follow-link-trigger-action (xwidget selected)
-  "Activate link matching SELECTED in XWIDGET LINKS."
-  (xwwp-follow-link-action xwidget selected))
+  "Activate link matching SELECTED in XWIDGET LINKS.
+The SELECTED value is the cdr of an assoc in the collection passed to
+completion back end, which is of the form (numerical-id link-url)"
+  (xwwp-follow-link-action xwidget (car selected)))
 
 (defun xwwp-follow-link-format-link (str)
   "Format link title STR."
@@ -208,12 +213,15 @@ browser."
 
 (defun xwwp-follow-link-prepare-links (links)
   "Prepare the alist of LINKS."
-  (seq-sort-by (lambda (v) (cdr v)) #'<
-               (seq-map (lambda (v) (cons (xwwp-follow-link-format-link (cdr v)) (string-to-number (car v))))
+  (seq-sort-by (lambda (v) (cadr v)) #'<
+               (seq-map (lambda (v) (list (xwwp-follow-link-format-link (aref (cdr v) 0))
+                                          (string-to-number (car v))
+                                          (aref (cdr v) 1)))
                         links)))
 
 (defun xwwp-follow-link-callback (links)
-  "Ask for a link belonging to the alist LINKS."
+  "Ask for a link belonging to the alist LINKS.
+LINKS maps a numerical ID to an array of form [link-text, link-uri]"
   (let* ((xwidget (xwidget-webkit-current-session))
          (links (xwwp-follow-link-prepare-links links)))
     (oset xwwp-follow-link-completion-backend-instance collection links)
