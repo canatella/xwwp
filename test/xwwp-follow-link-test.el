@@ -108,20 +108,20 @@ return '' + window.location;
        ,@body)))
 
 (ert-deftest test-xwwp-follow-link-prepare-links ()
-  (let ((links '(("3" . "Functions")
-                 ("1" . "Function Cells")
-                 ("12" . "Structures")
-                 ("2" . "Anonymous Functions")
-                 ("9" . "Declare Form"))))
-    (should (equal '(("Function Cells" . 1)
-	             ("Anonymous Functions" . 2)
-	             ("Functions" . 3)
-	             ("Declare Form" . 9)
-	             ("Structures" . 12))
+  (let ((links '(("3" . ["Functions" "http://www.this.is.a.test.de/functions"])
+                 ("1" . ["Function Cells" "http://www.this.is.a.test.de/function-cells"])
+                 ("12" . ["Structures" "http://www.this.is.a.test.de/structures"])
+                 ("2" . ["Anonymous Functions" "http://www.this.is.a.test.de/anon"])
+                 ("9" . ["Declare Form" "http://www.this.is.a.test.de/declare-form"]))))
+    (should (equal '(("Function Cells" . (1 "http://www.this.is.a.test.de/function-cells"))
+	             ("Anonymous Functions" . (2 "http://www.this.is.a.test.de/anon"))
+	             ("Functions" . (3 "http://www.this.is.a.test.de/functions"))
+	             ("Declare Form" . (9 "http://www.this.is.a.test.de/declare-form"))
+	             ("Structures" . (12 "http://www.this.is.a.test.de/structures")))
             (xwwp-follow-link-prepare-links links)))))
 
 (ert-deftest test-xwwp-follow-link-highlight ()
-  (with-test-backend-browse '(0 0 1) 0 "links.html"
+  (with-test-backend-browse '((0 "http://") (0 "http://") (1 "http://")) '(0 "http://") "links.html"
     (xwwp-follow-link)
     (xwwp-event-loop)
     (let ((backend xwwp-follow-link-completion-backend-instance))
@@ -131,7 +131,7 @@ return '' + window.location;
       (should (string= "test-1.html" (file-name-nondirectory (oref backend location))))
       (should (equal (backend-test-link-classes backend "test-1") '["xwwp-follow-link-selected"]))
       (should (equal (backend-test-link-classes backend "test-2") '["xwwp-follow-link-candidate"]))))
-  (with-test-backend-browse '(1 0 1) 1 "links.html"
+  (with-test-backend-browse '((1 "http://") (0 "http://") (1 "http://")) '(1 "http://") "links.html"
     (xwwp-follow-link)
     (xwwp-event-loop)
     (let ((backend xwwp-follow-link-completion-backend-instance))
@@ -140,10 +140,8 @@ return '' + window.location;
       (xwwp-event-dispatch)
       (should (string= "test-2.html" (file-name-nondirectory (oref backend location))))
       (should (equal (backend-test-link-classes backend "test-1") '["xwwp-follow-link-candidate"]))
-      (should (equal (backend-test-link-classes backend "test-2") '["xwwp-follow-link-selected"])))))
-
-(ert-deftest test-xwwp-follow-link-highlight-no-candidates ()
-  (with-test-backend-browse '(1) 1 "links.html"
+      (should (equal (backend-test-link-classes backend "test-2") '["xwwp-follow-link-selected"]))))
+  (with-test-backend-browse '((1 "http://")) '(1 "http://") "links.html"
     (xwwp-follow-link)
     (xwwp-event-loop)
     (let ((backend xwwp-follow-link-completion-backend-instance))

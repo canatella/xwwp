@@ -7,7 +7,7 @@
 ;; Version: 0.1
 ;; Package-Requires: ((emacs "26.1") (xwwp "0.1"))
 
-;; Copyright (C) 2020 Damien Merenne <dam@cosinux.org>
+;; Copyright (C) 2020 Q. Hong <qhong@mit.edu>, Damien Merenne <dam@cosinux.org>
 
 ;; This file is NOT part of GNU Emacs.
 
