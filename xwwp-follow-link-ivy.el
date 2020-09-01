@@ -62,7 +62,17 @@
 
 (defmacro xwwp-follow-link-ivy-ivify-action (v &rest body)
   "Wraps BODY as an action for the `xwwp-follow-link-read' `ivy' version.
-The text and url of the link is made available through variables `linktext' and
+The url of the link is made available as variable `linkurl' extracted from the
+selection candidate V.  Before the action is executed, the link highlights are
+removed from the HTML document shown in xwidgets."
+  `(let ((xwidget (xwidget-webkit-current-session))
+         (linkurl (caddr ,v)))
+    (xwwp-follow-link-cleanup xwidget)
+    ,@body))
+
+(defmacro xwwp-follow-link-ivy-ivify-action-with-text (v &rest body)
+  "Wraps BODY as an action for the `xwwp-follow-link-read' `ivy' version.
+The text and url of the link is made available as variables `linktext' and
 `linkurl' extracted from the selection candidate V.  Before the action is
 executed, the link highlights are removed from the HTML document shown in
 xwidgets."
@@ -70,18 +80,16 @@ xwidgets."
          (linktext (car ,v))
          (linkurl (caddr ,v)))
     (xwwp-follow-link-cleanup xwidget)
-    ,body))
+    ,@body))
 
 (defun xwwp-follow-link-ivy-copy-url-action (v)
   "Copy the selected url from candidate V to the `kill-ring'."
   (xwwp-follow-link-ivy-ivify-action v
-   (ignore 'linktext)
    (kill-new linkurl)))
 
 (defun xwwp-follow-link-ivy-browse-external-action (v)
   "Open the selected url from candidate V in the default browser."
   (xwwp-follow-link-ivy-ivify-action v
-   (ignore 'linktext)
    (browse-url linkurl)))
 
 (defun xwwp-follow-link-ivy-get-full-candidate (c)
