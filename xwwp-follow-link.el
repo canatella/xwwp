@@ -157,10 +157,10 @@ ACTION should be called with the resulting link.
 UPDATE-FN is a function that can be called when the candidates
 list is narrowed.It will highlight the link list in the
 browser."
-  (funcall action (cdr (assoc (completing-read prompt (lambda (str pred _)
+  (funcall action (cdr (assoc (completing-read prompt (lambda (str pred flag)
                                                         (oset backend text str)
                                                         (funcall update-fn)
-                                                        (try-completion str collection pred))
+                                                        (complete-with-action flag collection str pred))
                                                nil t)
                               collection))))
 

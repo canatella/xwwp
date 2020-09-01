@@ -59,3 +59,4 @@ please open an issue or better, create a pull request!
 
 - Damien Merenne <dam@cosinux.org>
 - Q. Hong <qhong@mit.edu>
+- Masahiro Nakamura <tsuucat@icloud.com>
