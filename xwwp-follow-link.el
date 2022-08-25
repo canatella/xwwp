@@ -67,11 +67,26 @@ returns an instance of an eieio class extending
   (concat (xwwp-css-make-class "xwwp-follow-link-candidate" xwwp-follow-link-candidate-style)
           (xwwp-css-make-class "xwwp-follow-link-selected" xwwp-follow-link-selected-style)))
 
-(xwwp-js-def follow-link cleanup ()
+(xwwp-js-def follow-link cleanup-preview-1 ()
   "Remove all custom class from links.""
+if (window.__xwidget_plus_follow_link_candidates) {
+    window.__xwidget_plus_follow_link_candidates.forEach(a => {
+        a.classList.remove('xwwp-follow-link-candidate', 'xwwp-follow-link-selected');
+    });
+}
+")
+
+(defun xwwp-follow-link-cleanup-preview ()
+  "Remove all custom class from links."
+  (xwwp-follow-link-cleanup-preview-1 (xwidget-webkit-current-session)))
+
+(xwwp-js-def follow-link cleanup ()
+  "Remove all custom class from links and cleanup model.""
 window.__xwidget_plus_follow_link_candidates.forEach(a => {
     a.classList.remove('xwwp-follow-link-candidate', 'xwwp-follow-link-selected');
 });
+if (window.__xwidget_plus_follow_link_candidates)
+    window.history.back();
 window.__xwidget_plus_follow_link_candidates = null;
 ")
 
@@ -98,6 +113,7 @@ selected.click();
 (xwwp-js-def follow-link fetch-links ()
   "Fetch all visible, non empty links from the current page.""
 var r = {};
+window.history.pushState({}, 'xwwp-follow-link');
 window.__xwidget_plus_follow_link_candidates = Array.from(document.querySelectorAll('a'));
 window.__xwidget_plus_follow_link_candidates.forEach((a, i) => {
     if (a.offsetWidth || a.offsetHeight || a.getClientRects().length) {
@@ -183,6 +199,10 @@ browser."
         ((eq xwwp-follow-link-completion-system 'ido)
          (require 'xwwp-follow-link-ido)
          #'xwwp-follow-link-completion-backend-ido)
+        ((eq xwwp-follow-link-completion-system 'consult)
+         (unless (require 'xwwp-follow-link-consult nil t)
+           (user-error "Install the `xwwp-follow-link-consult' package to use `xwwp-follow-link' with `consult'"))
+         #'xwwp-follow-link-completion-backend-consult)
         ((eq xwwp-follow-link-completion-system 'default)
          #'xwwp-follow-link-completion-backend-default)
         (t xwwp-follow-link-completion-system)))

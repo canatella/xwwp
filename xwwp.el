@@ -159,6 +159,7 @@ Interactively, URL defaults to the string looking like a url around point."
     (if new-session
         (xwidget-webkit-new-session url)
       (progn (xwidget-webkit-goto-url url)
+             (bury-buffer)
              (switch-to-buffer-other-window (xwidget-buffer (xwidget-webkit-current-session)))))))
 
 ;;; Adapted from EWW code to provide a DWIM style XWWP command
